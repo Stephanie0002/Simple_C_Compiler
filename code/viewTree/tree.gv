@@ -1,0 +1,14 @@
+digraph G {
+	1 [label=CompUnit]
+	2 [label=CompUnit]
+	1 -> 2
+	1 [label=CompUnit]
+	3 [label=Decl]
+	1 -> 3
+	2 [label=CompUnit]
+	4 [label=Decl]
+	2 -> 4
+	4 [label=Decl]
+	5 [label=yeah]
+	4 -> 5
+}
