@@ -1,8 +1,17 @@
 # Simple_C_Compiler
-**1.概述**
+
+## 概述
 
 本文件夹存放一些临时文件，如报告内容要点等
 
-**2.文件夹结构**
+## 文件夹结构
 
 /文法词法.doc ---描述了lex词法以及yacc语法，lex程序yacc程序基于该文件
+
+## log
+
+ref
+- http://www.quut.com/c/ANSI-C-grammar-l-1998.html
+- http://www.quut.com/c/ANSI-C-grammar-y-1998.html
+- https://github.com/IMMORTAL23/ZJU-Course_info/tree/master/junior/%E7%BC%96%E8%AF%91%E5%8E%9F%E7%90%86 
+  - Project_1 in particular
