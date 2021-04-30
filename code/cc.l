@@ -19,12 +19,17 @@ H			[a-fA-F0-9]
 %% 
 [1-9]{D}* {
     yylval.type_int = atoi(yytext);
-    return NUMBER;
+    return(NUMBER);
+}
+0[0-7]* {
+    char *dc;
+    yylval.type_int = strtol(yytext, &dc, 8);
+    return(NUMBER);
 }
 0[xX]{H}+ {
     char *dc;
     yylval.type_int = strtol(yytext, &dc, 16);
-    return NUMBER;
+    return(NUMBER);
 }
 
 "const"			{ return(CONST); }
@@ -42,7 +47,7 @@ H			[a-fA-F0-9]
 }
 
 [+\-*/%<>!=;,\[\](){}] {
-    return yytext[0];
+    return(yytext[0]);
 }
 "<="			{ return(LE_OP); }
 ">="			{ return(GE_OP); }

@@ -10,8 +10,17 @@
 
 ## log
 
-ref
+### ref  
 - http://www.quut.com/c/ANSI-C-grammar-l-1998.html
 - http://www.quut.com/c/ANSI-C-grammar-y-1998.html
 - https://github.com/IMMORTAL23/ZJU-Course_info/tree/master/junior/%E7%BC%96%E8%AF%91%E5%8E%9F%E7%90%86 
   - Project_1 in particular
+
+### lex_test  
+- methodology
+  - `return\((.*)\)` -> `printf("$1 ")`
+    - yylval yylloc literals main
+  - visual
+  - `printf\("(.*) "\)` -> `return($1)` ...
+- 19_neg_expr 商议增加八进制的NUMBER 否则无法识别 0
+- 04_const_defn 08_comment2 12_array_traverse 38_if_complex_expr 99_register_realloc P
