@@ -58,6 +58,7 @@ H			[a-fA-F0-9]
 . { 
     yylval.type_str[0] = yytext[0];
     yylval.type_str[1] = '\0';
+    printf("[Lexical] Error at Line %d: Mysterious characters \'%s\'\n", yylineno, yytext); 
     return(ERROR); 
 }
 
