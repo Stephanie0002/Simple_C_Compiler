@@ -1,4 +1,6 @@
 code/.vscode
+.vscode
+code/viewTree/.idea
 code/lex.yy.c
 code/y.tab.c
 code/y.tab.h
