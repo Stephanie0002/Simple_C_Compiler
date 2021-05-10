@@ -274,7 +274,8 @@ ConstExp:
 void yyerror(char const *s)
 {
 	fflush(stdout);
-	printf("\n%*s\n%*s\n", yycolumn, "^", yycolumn, s);
+	printf("\nRow No.%d, Col No.%d: [Yacc]%s\n", yylineno, yycolumn, s);
+    exit(0);
 }
 
 int main(int argc, char* argv[]) {

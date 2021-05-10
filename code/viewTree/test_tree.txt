@@ -1,40 +1,7 @@
 1 CompUnit 
 2 FuncDef 
 3 BType 
-4 INT 5 IDENT 
+4 @*e 5 IDENT 
 6 ( 
-7 ) 
-8 block 
-9 { 
-10 TempF 
-11 TempF 12 } 
-13 TempF 14 BlockItem 
-15 TempF 16 BlockItem 17 Stmt 
-18 TempF 19 BlockItem 20 Stmt 21 RETURN 
-22 TempF 23 BlockItem 24 Stmt 25 IF 26 Exp 
-27 TempF 28 BlockItem 29 Stmt 30 IF 31 ( 32 AddExp 33 ; 
-34 TempF 35 BlockItem 36 Stmt 37 LVal 38 ( 39 Cond 40 MulExp 
-41 TempF 42 BlockItem 43 Stmt 44 LVal 45 IDENT 46 = 47 Cond 48 LOrExp 49 ) 50 UnaryExp 
-51 TempF 52 BlockItem 53 Stmt 54 LVal 55 IDENT 56 = 57 Exp 58 LOrExp 59 ) 60 LOrExp 61 Stmt 62 PrimaryExp 
-63 TempF 64 BlockItem 65 Stmt 66 LVal 67 IDENT 68 = 69 Exp 70 AddExp 71 ; 72 LOrExp 73 Stmt 74 LAndExp 75 OR_OP 76 block 77 NUMBER 
-78 TempF 79 BlockItem 80 Decl 81 LVal 82 IDENT 83 = 84 Exp 85 AddExp 86 ; 87 MulExp 88 LAndExp 89 OR_OP 90 block 91 EqExp 92 LAndExp 93 { 
-94 TempF 95 BlockItem 96 Decl 97 VarDecl 98 IDENT 99 = 100 Exp 101 AddExp 102 ; 103 MulExp 104 UnaryExp 105 EqExp 106 LAndExp 107 { 108 RelExp 109 LAndExp 110 TempF 
-111 TempF 112 BlockItem 113 Decl 114 VarDecl 115 BType 116 Exp 117 AddExp 118 ; 119 MulExp 120 UnaryExp 121 PrimaryExp 122 RelExp 123 LAndExp 124 TempF 125 RelExp 126 EqExp 127 AND_OP 128 TempF 129 } 
-130 none 131 BlockItem 132 Decl 133 VarDecl 134 BType 135 INT 136 VarDef 137 AddExp 138 ; 139 MulExp 140 UnaryExp 141 UnaryOP 142 NUMBER 143 RelExp 144 EqExp 145 AND_OP 146 TempF 147 } 148 AddExp 149 < 150 EqExp 151 EqExp 152 TempF 153 BlockItem 
-154 Decl 155 VarDecl 156 BType 157 INT 158 VarDef 159 IDENT 160 TempC 161 MulExp 162 UnaryExp 163 PrimaryExp 164 - 165 UnaryExp 166 AddExp 167 < 168 EqExp 169 EqExp 170 none 171 BlockItem 172 MulExp 173 AddExp 174 RelExp 175 NE_OP 176 EqExp 177 none 178 BlockItem 179 Stmt 
-180 VarDecl 181 BType 182 INT 183 VarDef 184 IDENT 185 TempC 186 none 187 ; 188 UnaryExp 189 PrimaryExp 190 NUMBER 191 PrimaryExp 192 MulExp 193 AddExp 194 RelExp 195 NE_OP 196 EqExp 197 Stmt 198 UnaryExp 199 MulExp 200 AddExp 201 RelExp 202 RelExp 203 NE_OP 204 Stmt 205 Exp 
-206 BType 207 INT 208 VarDef 209 IDENT 210 TempC 211 none 212 ; 213 PrimaryExp 214 NUMBER 215 NUMBER 216 UnaryExp 217 MulExp 218 AddExp 219 RelExp 220 RelExp 221 NE_OP 222 Exp 223 PrimaryExp 224 UnaryExp 225 MulExp 226 AddExp 227 AddExp 228 RelExp 229 LVal 230 AddExp 231 ; 
-232 INT 233 VarDef 234 IDENT 235 TempC 236 none 237 ; 238 NUMBER 239 PrimaryExp 240 UnaryExp 241 MulExp 242 AddExp 243 AddExp 244 RelExp 245 AddExp 246 ; 247 ( 248 PrimaryExp 249 UnaryExp 250 MulExp 251 MulExp 252 AddExp 253 IDENT 254 = 255 MulExp 
-256 IDENT 257 TempC 258 none 259 ; 260 ( 261 PrimaryExp 262 UnaryExp 263 MulExp 264 MulExp 265 AddExp 266 MulExp 267 Exp 268 NUMBER 269 PrimaryExp 270 UnaryExp 271 MulExp 272 MulExp 273 Exp 274 UnaryExp 
-275 none 276 ; 277 Exp 278 NUMBER 279 PrimaryExp 280 UnaryExp 281 MulExp 282 MulExp 283 UnaryExp 284 AddExp 285 ) 286 ( 287 PrimaryExp 288 UnaryExp 289 % 290 UnaryExp 291 AddExp 292 ; 293 IDENT 
-294 AddExp 295 ) 296 ( 297 PrimaryExp 298 UnaryExp 299 % 300 UnaryExp 301 IDENT 302 AddExp 303 Exp 304 NUMBER 305 PrimaryExp 306 UnaryExp 307 PrimaryExp 308 MulExp 309 ( 
-310 MulExp 311 Exp 312 NUMBER 313 PrimaryExp 314 UnaryExp 315 PrimaryExp 316 ( 317 MulExp 318 + 319 AddExp 320 ) 321 ( 322 PrimaryExp 323 NUMBER 324 UnaryExp 325 FuncFParams 
-326 MulExp 327 AddExp 328 ) 329 ( 330 PrimaryExp 331 NUMBER 332 FuncFParams 333 MulExp 334 MulExp 335 AddExp 336 Exp 337 NUMBER 338 PrimaryExp 339 Exp 340 ) 
-341 MulExp 342 / 343 AddExp 344 Exp 345 NUMBER 346 Exp 347 ) 348 UnaryExp 349 % 350 UnaryExp 351 MulExp 352 - 353 AddExp 354 ) 355 NUMBER 356 AddExp 357 TempG 
-358 UnaryExp 359 * 360 UnaryExp 361 MulExp 362 - 363 AddExp 364 ) 365 AddExp 366 TempG 367 PrimaryExp 368 UnaryExp 369 PrimaryExp 370 UnaryExp 371 MulExp 372 AddExp 373 MulExp 374 none 
-375 PrimaryExp 376 UnaryExp 377 PrimaryExp 378 UnaryExp 379 MulExp 380 AddExp 381 MulExp 382 none 383 LVal 384 PrimaryExp 385 NUMBER 386 PrimaryExp 387 UnaryExp 388 MulExp 389 + 390 UnaryExp 
-391 LVal 392 PrimaryExp 393 NUMBER 394 PrimaryExp 395 UnaryExp 396 MulExp 397 + 398 UnaryExp 399 IDENT 400 NUMBER 401 LVal 402 PrimaryExp 403 UnaryExp 404 MulExp 405 PrimaryExp 
-406 IDENT 407 NUMBER 408 LVal 409 PrimaryExp 410 UnaryExp 411 MulExp 412 PrimaryExp 413 IDENT 414 LVal 415 PrimaryExp 416 UnaryExp 417 LVal 
-418 IDENT 419 LVal 420 PrimaryExp 421 UnaryExp 422 LVal 423 IDENT 424 LVal 425 PrimaryExp 426 IDENT 
-427 IDENT 428 LVal 429 PrimaryExp 430 IDENT 431 IDENT 432 NUMBER 
-433 IDENT 434 NUMBER 
+7 FuncFparams 
+8 FuncFparam 9 ) 

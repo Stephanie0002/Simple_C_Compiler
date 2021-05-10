@@ -16,7 +16,6 @@ void comment();
 void count(void);
 
 int yycolumn = 0;
-// #define YY_USER_ACTION count();
 %}
 
 D			[0-9]
@@ -43,32 +42,32 @@ H			[a-fA-F0-9]
 0[0-7]*     { count(); yylval.tree = createTree("NUMBER", 0, yylineno); return(NUMBER); }
 0[xX]{H}+   { count(); yylval.tree = createTree("NUMBER", 0, yylineno); return(NUMBER); }
 
-"&&"	{ count(); yylval.tree =createTree("AND_OP", 0, yylineno); return(AND_OP); }
-"||"	{ count(); yylval.tree =createTree("OR_OP", 0, yylineno); return(OR_OP); }
-"<="	{ count(); yylval.tree =createTree("LE_OP", 0, yylineno); return(LE_OP); }
-">="	{ count(); yylval.tree =createTree("GE_OP", 0, yylineno); return(GE_OP); }
-"=="	{ count(); yylval.tree =createTree("EQ_OP", 0, yylineno); return(EQ_OP); }
-"!="	{ count(); yylval.tree =createTree("NE_OP", 0, yylineno); return(NE_OP); }
-";"		{ count(); yylval.tree =createTree(";",0,yylineno);	return(';'); }
-","		{ count(); yylval.tree =createTree(",",0,yylineno);	return(','); }
-"="		{ count(); yylval.tree =createTree("=",0,yylineno);	return('='); }
-"["	 	{ count(); yylval.tree =createTree("[",0,yylineno);	return('['); }
-"]"		{ count(); yylval.tree =createTree("]",0,yylineno);	return(']'); }
-"!"		{ count(); yylval.tree =createTree("!",0,yylineno);	return('!'); }
-"+"		{ count(); yylval.tree =createTree("+",0,yylineno);	return('+'); }
-"-"		{ count(); yylval.tree =createTree("-",0,yylineno);	return('-'); }
-"*"		{ count(); yylval.tree =createTree("*",0,yylineno);	return('*'); }
-"/"		{ count(); yylval.tree =createTree("/",0,yylineno);	return('/'); }
-"%"		{ count(); yylval.tree =createTree("%",0,yylineno);	return('%'); } 
-"<"		{ count(); yylval.tree =createTree("<",0,yylineno);	return('<'); }
-">"		{ count(); yylval.tree =createTree(">",0,yylineno);	return('>'); }
-"{"		{ count(); yylval.tree =createTree("{",0,yylineno);	return('{'); }
-"}"		{ count(); yylval.tree =createTree("}",0,yylineno);	return('}'); }
-"("		{ count(); yylval.tree =createTree("(",0,yylineno);	return('('); }
-")"		{ count(); yylval.tree =createTree(")",0,yylineno);	return(')'); }
+"&&"	{ count(); yylval.tree =createTree("AND_OP", 0, yylineno);	return(AND_OP); }
+"||"	{ count(); yylval.tree =createTree("OR_OP", 0, yylineno); 	return(OR_OP); }
+"<="	{ count(); yylval.tree =createTree("LE_OP", 0, yylineno); 	return(LE_OP); }
+">="	{ count(); yylval.tree =createTree("GE_OP", 0, yylineno); 	return(GE_OP); }
+"=="	{ count(); yylval.tree =createTree("EQ_OP", 0, yylineno); 	return(EQ_OP); }
+"!="	{ count(); yylval.tree =createTree("NE_OP", 0, yylineno); 	return(NE_OP); }
+";"		{ count(); yylval.tree =createTree(";", 0, yylineno);		return(';'); }
+","		{ count(); yylval.tree =createTree(",", 0, yylineno);		return(','); }
+"="		{ count(); yylval.tree =createTree("=", 0, yylineno);		return('='); }
+"["	 	{ count(); yylval.tree =createTree("[", 0, yylineno);	    return('['); }
+"]"		{ count(); yylval.tree =createTree("]", 0, yylineno);	    return(']'); }
+"!"		{ count(); yylval.tree =createTree("!", 0, yylineno);	    return('!'); }
+"+"		{ count(); yylval.tree =createTree("+", 0, yylineno);	    return('+'); }
+"-"		{ count(); yylval.tree =createTree("-", 0, yylineno);		return('-'); }
+"*"		{ count(); yylval.tree =createTree("*", 0, yylineno);		return('*'); }
+"/"		{ count(); yylval.tree =createTree("/", 0, yylineno);		return('/'); }
+"%"		{ count(); yylval.tree =createTree("%", 0, yylineno);		return('%'); } 
+"<"		{ count(); yylval.tree =createTree("<", 0, yylineno);		return('<'); }
+">"		{ count(); yylval.tree =createTree(">", 0, yylineno);		return('>'); }
+"{"		{ count(); yylval.tree =createTree("{", 0, yylineno);		return('{'); }
+"}"		{ count(); yylval.tree =createTree("}", 0, yylineno);		return('}'); }
+"("		{ count(); yylval.tree =createTree("(", 0, yylineno);		return('('); }
+")"		{ count(); yylval.tree =createTree(")", 0, yylineno);		return(')'); }
 
 [\t\v\n\f ]     { count(); }
-. 				{ printf("ERROR"); }
+. 				{ printf("\nRow No.%d, Col No.%dcol: [Lexical]unmatched character %s\n", yylineno, yycolumn, yytext[0]); exit(0);}
 
 %%
 
