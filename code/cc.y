@@ -21,10 +21,7 @@ void yyerror(const char *);
 
 %union {
     struct grammarTree* tree;
-    char type_str[32]; 
 }
-
-%token <type_str> ERROR
 
 %token <tree> NUMBER CONST IDENT
 %token <tree> INT VOID
@@ -42,6 +39,8 @@ void yyerror(const char *);
 %type <tree> TempA TempB TempC TempD TempE TempF TempG
 %type <tree> Stmt Cond
 
+%nonassoc LOWER_THAN_ELSE
+%nonassoc ELSE
 %%
 /* rules */
 
@@ -66,7 +65,7 @@ ConstDecl:
 
 TempA:
         TempA ',' ConstDef{$$ = createTree("TempA", 3, $1, $2, $3);}
-    |   {}
+    |   {$$ = createTree("TempA", -1, yylineno);}
     ;
 
 // 基本类型
@@ -88,7 +87,7 @@ ConstInitVal:
     ;
 TempB:
         TempB ',' ConstExp{$$ = createTree("TempB", 3, $1, $2, $3);}
-    |   {}
+    |   {$$ = createTree("TempB", -1, yylineno);}
     ;
 
 // 变量声明
@@ -98,7 +97,7 @@ VarDecl:
 
 TempC:
         TempC ',' VarDef{$$ = createTree("Tempc", 3, $1, $2, $3);}
-    |   {}
+    |   {$$ = createTree("TempC", -1, yylineno);}
     ;
 
 // 变量定义
@@ -118,7 +117,7 @@ InitVal:
 
 TempD:
         TempD ',' Exp{$$ = createTree("TempD", 3, $1, $2, $3);}
-    |   {}
+    |   {$$ = createTree("TempD", -1, yylineno);}
     ;
 
 // 函数定义
@@ -134,7 +133,7 @@ FuncFParams:
 
 TempE:
         TempE ',' FuncFParam{$$ = createTree("TempE", 3, $1, $2, $3);}
-    |   {}
+    |   {$$ = createTree("TempE", -1, yylineno);}
     ;
 
 // 函数形参
@@ -150,7 +149,7 @@ Block:
     
 TempF:
     TempF BlockItem{$$ = createTree("TempF", 2, $1, $2);}
-    |   {}
+    |   {$$ = createTree("TempF", -1, yylineno);}
     ;
 
 // 语句块项
@@ -218,7 +217,7 @@ FuncRParams:
     ;
 TempG:
         TempG ',' Exp{$$ = createTree("TempG", 3, $1, $2, $3);}
-    |   {}
+    |   {$$ = createTree("TempG", -1, yylineno);}
     ;
 
 // 加减表达式
@@ -300,15 +299,16 @@ int main(int argc, char* argv[]) {
     for (int i=start; i<argc; i++){
         yyin = fopen(argv[i], "r");
         
-        printf("The source code of %s is: \n", argv[i]);
+        printf("\nThe source code of %s is: ", argv[i]);
         yyparse();
 
-        if (verbose)
-            outputTree(root, 0);
+        // if (verbose)
+        //     outputTree(root, 0);
         floorPrint(root, verbose);
         Clean(root);
 
         fclose(yyin);
+        printf("\n");
     }
     return 0;
 }
