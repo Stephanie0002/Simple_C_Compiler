@@ -26,6 +26,13 @@ H			[a-fA-F0-9]
 "/*"			{ comment(); }
 "//"[^\n]*      {  }
 
+"for" 			{printf("Undifined reserved word \'for\'!"); exit(0);}
+"switch"		{printf("Undifined reserved word \'switch\'!"); exit(0);}
+"case"			{printf("Undifined reserved word \'case\'!"); exit(0);}
+"char"			{printf("Undifined reserved word \'char\'!"); exit(0);}
+"double"		{printf("Undifined reserved word \'double\'!"); exit(0);}
+"float"			{printf("Undifined reserved word \'float\'!"); exit(0);}
+
 "const"			{ count(); yylval.tree =createTree("CONST", 0, yylineno); 	return(CONST); }
 "int"			{ count(); yylval.tree =createTree("INT", 0, yylineno); 	return(INT); }
 "void"			{ count(); yylval.tree =createTree("VOID", 0, yylineno); 	return(VOID); }

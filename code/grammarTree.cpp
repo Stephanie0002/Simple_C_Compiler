@@ -5,11 +5,9 @@ grammarTree *createTree(string name, int num, ...)
 {
     if (num == -1)
     {
-        // cout << num << endl;
         va_list valist;
         va_start(valist, 0);
         int lineno = va_arg(valist, int);
-        // cout << lineno << endl;
         grammarTree *root = new grammarTree();
         if (!root)
         {
@@ -17,6 +15,11 @@ grammarTree *createTree(string name, int num, ...)
             exit(0);
         }
         grammarTree *temp = new grammarTree();
+        if (!temp)
+        {
+            printf("Out of space \n");
+            exit(0);
+        }
         temp->left = NULL;
         temp->right = NULL;
         temp->content = "none";
@@ -32,7 +35,6 @@ grammarTree *createTree(string name, int num, ...)
         return root;
     }
 
-    va_list valist;
     grammarTree *root = new grammarTree();
     if (!root)
     {
@@ -43,8 +45,11 @@ grammarTree *createTree(string name, int num, ...)
     root->right = NULL;
     root->content = "";
     root->name = name;
-    grammarTree *temp = NULL;
+
+    va_list valist;
     va_start(valist, num);
+
+    grammarTree *temp = NULL;
     if (num > 0)
     {
         temp = va_arg(valist, grammarTree *);
