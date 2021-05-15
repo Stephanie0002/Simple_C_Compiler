@@ -1,7 +1,0 @@
-1 CompUnit 
-2 FuncDef 
-3 BType 
-4 @*e 5 IDENT 
-6 ( 
-7 FuncFparams 
-8 FuncFparam 9 ) 

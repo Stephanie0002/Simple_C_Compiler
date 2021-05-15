@@ -298,14 +298,17 @@ int main(int argc, char* argv[]) {
     }
 
     for (int i=start; i<argc; i++){
+        string filename = argv[i];
         yyin = fopen(argv[i], "r");
         
         printf("\nThe source code of %s is: ", argv[i]);
         yyparse();
 
+        grammarTree* tmp = root;
         // if (verbose)
         //     outputTree(root, 0);
-        floorPrint(root, verbose);
+        floorPrint(root, filename, verbose);
+        nodePrint(tmp, filename, verbose);
         Clean(root);
 
         fclose(yyin);

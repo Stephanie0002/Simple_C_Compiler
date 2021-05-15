@@ -20,6 +20,7 @@ struct grammarTree
     string content;
     string name;
     int lineno;
+    int id = -1;
     struct grammarTree *left;
     struct grammarTree *right;
 };
@@ -28,7 +29,8 @@ extern struct grammarTree *root;
 
 struct grammarTree *createTree(string name, int num, ...);
 void outputTree(grammarTree *root, int level);
-void floorPrint(grammarTree *root, bool verbose);
+void floorPrint(grammarTree *root, string filename, bool verbose);
+void nodePrint(grammarTree *root, string filename, bool verbose);
 void Clean(grammarTree *node);
 
 #endif

@@ -14,7 +14,8 @@ int main()
 {
     int result, times;
     times = read();
-    for (int i = 0; i < times; i++)
+    int i = 0;
+    while (i < times)
     {
         int m = read();
         if (m > 1)
@@ -26,6 +27,7 @@ int main()
             result = 1;
         }
         print(result);
+        i = i + 1;
     }
     return 0;
 }

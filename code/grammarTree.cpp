@@ -101,13 +101,13 @@ grammarTree *createTree(string name, int num, ...)
     return root;
 }
 
-void floorPrint(grammarTree *root, bool verbose)
+void floorPrint(grammarTree *root, string filename, bool verbose)
 {
     cout << endl;
     if (root == NULL)
         return;
-
-    ofstream outfile("viewTree/test_tree.txt");
+    filename = "viewTree/" + filename + "_floor_tree.txt";
+    ofstream outfile(filename);
     queue<grammarTree *> q;
     q.push(root);
     int id = 1;
@@ -124,16 +124,21 @@ void floorPrint(grammarTree *root, bool verbose)
             tmp = int2str(id);
             vector<string> a = {tmp, p->name};
             id = str2int(tmp);
+            p->id = id;
             id++;
 
             tempVec.push_back(a);
 
             if (p->left)
+            {
                 q.push(p->left);
+            }
             if (p->right)
+            {
                 q.push(p->right);
+            }
         }
-
+        //  Floor print
         for (int i = 0; i < tempVec.size(); i++)
         {
             outfile << tempVec[i][0] << " " << tempVec[i][1] << " ";
@@ -143,6 +148,45 @@ void floorPrint(grammarTree *root, bool verbose)
         outfile << endl;
         if (verbose)
             cout << endl;
+    }
+}
+
+void nodePrint(grammarTree *root, string filename, bool verbose)
+{
+    cout << endl;
+    if (root == NULL)
+        return;
+    filename = "viewTree/" + filename + "_node_tree.txt";
+    ofstream outfile(filename);
+    queue<grammarTree *> q;
+    q.push(root);
+    while (!q.empty())
+    {
+        int currentSize = q.size();
+        for (int j = 0; j < currentSize; j++)
+        {
+            grammarTree *p = q.front();
+            q.pop();
+
+            if (p->left)
+            {
+                if (verbose)
+                {
+                    cout << p->id << " " << p->name << " " << p->left->id << " " << p->left->name << endl;
+                }
+                outfile << p->id << " " << p->name << " " << p->left->id << " " << p->left->name << endl;
+                q.push(p->left);
+            }
+            if (p->right)
+            {
+                if (verbose)
+                {
+                    cout << p->id << " " << p->name << " " << p->right->id << " " << p->right->name << endl;
+                }
+                outfile << p->id << " " << p->name << " " << p->right->id << " " << p->right->name << endl;
+                q.push(p->right);
+            }
+        }
     }
 }
 
