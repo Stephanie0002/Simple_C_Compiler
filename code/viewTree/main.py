@@ -15,4 +15,3 @@ for i in range(0, len(items), 2):
         g.edge(items[i-2], items[i])
 print(g.source)
 g.view()
-g.render()
