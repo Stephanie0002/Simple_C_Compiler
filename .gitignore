@@ -1,8 +1,8 @@
-code/.vscode
-.vscode
-code/viewTree/.idea
+**/.vscode
+**/.idea
+**/venv/
 code/lex.yy.c
 code/y.tab.c
 code/y.tab.h
-code/cc.exe
-code/y.output
+**/*.exe
+**/*.output
