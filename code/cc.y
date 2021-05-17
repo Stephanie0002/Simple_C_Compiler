@@ -33,13 +33,11 @@ void yyerror(const char *);
 %type <tree> CompUnit Decl 
 %type <tree> ConstDecl VarDecl ConstDef ConstInitVal ConstExp
 %type <tree> VarDef InitVal
-%type <tree> Exp PrimaryExp UnaryExp LVal RelExp UnaryOp
-// %type <tree> AddExp LOrExp UnaryOp MulExp EqExp LAndExp
+%type <tree> Exp PrimaryExp UnaryExp LVal AddExp LOrExp UnaryOp MulExp RelExp EqExp LAndExp
 %type <tree> FuncDef FuncFParam FuncFParams FuncRParams BType
 %type <tree> Block BlockItem
 %type <tree> TempA TempB TempC TempD TempE TempF TempG
 %type <tree> Stmt Cond
-%type <tree> OPExp
 
 %nonassoc LOWER_THAN_ELSE
 %nonassoc ELSE
@@ -176,19 +174,14 @@ Stmt:
     ;
 
 // 表达式
-// Exp:
-//         AddExp{$$ = createTree("Exp", 1, $1);}
-//     ;
 Exp:
-        OPExp{$$ = createTree("Exp", 1, $1);}
+        AddExp{$$ = createTree("Exp", 1, $1);}
     ;
 
 // 条件表达式
-// Cond:
-//         LOrExp{$$ = createTree("Cond", 1, $1);}
-//     ;
 Cond:
-            RelExp{$$ = createTree("Cond", 1, $1);}
+        LOrExp{$$ = createTree("Cond", 1, $1);}
+    ;
 
 // 左值表达式
 LVal: 
@@ -227,76 +220,53 @@ TempG:
     |   {$$ = createTree("TempG", -1, yylineno);}
     ;
 
-// // 加减表达式
-// AddExp: 
-//         MulExp{$$ = createTree("AddExp", 1, $1);}
-//     |   AddExp '+' MulExp{$$ = createTree("AddExp", 3, $1, $2, $3);}
-//     |   AddExp '-' MulExp{$$ = createTree("AddExp", 3, $1, $2, $3);}
-//     ;
-
-// // 乘除模表达式
-// MulExp:
-//         UnaryExp{$$ = createTree("MulExp", 1, $1);}
-//     |   MulExp '*' UnaryExp{$$ = createTree("MulExp", 3, $1, $2, $3);}
-//     |   MulExp '/' UnaryExp{$$ = createTree("MulExp", 3, $1, $2, $3);}
-//     |   MulExp '%' UnaryExp{$$ = createTree("MulExp", 3, $1, $2, $3);}
-//     ;
-
-// 运算表达式
-OPExp:
-        UnaryExp{$$ = createTree("OPExp", 1, $1);}
-    |   OPExp '+' OPExp{$$ = createTree("OpExp", 3, $1, $2, $3);}
-    |   OPExp '-' OPExp{$$ = createTree("OpExp", 3, $1, $2, $3);}
-    |   OPExp '*' OPExp{$$ = createTree("OpExp", 3, $1, $2, $3);}
-    |   OPExp '/' OPExp{$$ = createTree("OpExp", 3, $1, $2, $3);}
-    |   OPExp '%' OPExp{$$ = createTree("OpExp", 3, $1, $2, $3);}
-
-// 关系表达式
-// RelExp:
-//         AddExp{$$ = createTree("RelExp", 1, $1);}
-//     |   RelExp '<' AddExp{$$ = createTree("RelExp", 3, $1, $2, $3);}
-//     |   RelExp '>' AddExp{$$ = createTree("RelExp", 3, $1, $2, $3);}
-//     |   RelExp LE_OP AddExp{$$ = createTree("RelExp", 3, $1, $2, $3);}
-//     |   RelExp GE_OP AddExp{$$ = createTree("RelExp", 3, $1, $2, $3);}
-//     ;
-RelExp:
-        OPExp{$$ = createTree("RelExp", 1, $1);}
-    |   RelExp '<' RelExp{$$ = createTree("RelExp", 3, $1, $2, $3);}
-    |   RelExp '>' RelExp{$$ = createTree("RelExp", 3, $1, $2, $3);}
-    |   RelExp LE_OP RelExp{$$ = createTree("RelExp", 3, $1, $2, $3);}
-    |   RelExp GE_OP RelExp{$$ = createTree("RelExp", 3, $1, $2, $3);}
-    |   RelExp EQ_OP RelExp{$$ = createTree("RelExp", 3, $1, $2, $3);}
-    |   RelExp NE_OP RelExp{$$ = createTree("RelExp", 3, $1, $2, $3);}
-    |   RelExp AND_OP RelExp{$$ = createTree("RelExp", 3, $1, $2, $3);}
-    |   RelExp OR_OP RelExp{$$ = createTree("RelExp", 3, $1, $2, $3);}
+// 加减表达式
+AddExp: 
+        MulExp{$$ = createTree("AddExp", 1, $1);}
+    |   AddExp '+' MulExp{$$ = createTree("AddExp", 3, $1, $2, $3);}
+    |   AddExp '-' MulExp{$$ = createTree("AddExp", 3, $1, $2, $3);}
     ;
 
+// 乘除模表达式
+MulExp:
+        UnaryExp{$$ = createTree("MulExp", 1, $1);}
+    |   MulExp '*' UnaryExp{$$ = createTree("MulExp", 3, $1, $2, $3);}
+    |   MulExp '/' UnaryExp{$$ = createTree("MulExp", 3, $1, $2, $3);}
+    |   MulExp '%' UnaryExp{$$ = createTree("MulExp", 3, $1, $2, $3);}
+    ;
 
-// // 相等性表达式
-// EqExp:
-//         RelExp{$$ = createTree("EqExp", 1, $1);}
-//     |   EqExp EQ_OP RelExp{$$ = createTree("EqExp", 3, $1, $2, $3);}
-//     |   EqExp NE_OP RelExp{$$ = createTree("EqExp", 3, $1, $2, $3);}
-//     ;
+// 关系表达式
+RelExp:
+        AddExp{$$ = createTree("RelExp", 1, $1);}
+    |   RelExp '<' AddExp{$$ = createTree("RelExp", 3, $1, $2, $3);}
+    |   RelExp '>' AddExp{$$ = createTree("RelExp", 3, $1, $2, $3);}
+    |   RelExp LE_OP AddExp{$$ = createTree("RelExp", 3, $1, $2, $3);}
+    |   RelExp GE_OP AddExp{$$ = createTree("RelExp", 3, $1, $2, $3);}
+    ;
 
-// // 逻辑与表达式
-// LAndExp:
-//         EqExp{$$ = createTree("LAndExp", 1, $1);}
-//     |   LAndExp AND_OP EqExp{$$ = createTree("LAndExp", 3, $1, $2, $3);}
-//     ;
+// 相等性表达式
+EqExp:
+        RelExp{$$ = createTree("EqExp", 1, $1);}
+    |   EqExp EQ_OP RelExp{$$ = createTree("EqExp", 3, $1, $2, $3);}
+    |   EqExp NE_OP RelExp{$$ = createTree("EqExp", 3, $1, $2, $3);}
+    ;
 
-// // 逻辑或表达式
-// LOrExp:
-//         LAndExp{$$ = createTree("LOrExp", 1, $1);}
-//     |   LOrExp OR_OP LAndExp{$$ = createTree("LOrExp", 3, $1, $2, $3);}
-//     ;
+// 逻辑与表达式
+LAndExp:
+        EqExp{$$ = createTree("LAndExp", 1, $1);}
+    |   LAndExp AND_OP EqExp{$$ = createTree("LAndExp", 3, $1, $2, $3);}
+    ;
+
+// 逻辑或表达式
+LOrExp:
+        LAndExp{$$ = createTree("LOrExp", 1, $1);}
+    |   LOrExp OR_OP LAndExp{$$ = createTree("LOrExp", 3, $1, $2, $3);}
+    ;
 
 // 表达式
-// ConstExp:
-//         AddExp{$$ = createTree("ConstExp", 1, $1);}
-//     ;
 ConstExp:
-            OPExp{$$ = createTree("ConstExp", 1, $1);}
+        AddExp{$$ = createTree("ConstExp", 1, $1);}
+    ;
 %%
 
 /* programs */
@@ -309,7 +279,6 @@ void yyerror(char const *s)
 }
 
 int main(int argc, char* argv[]) {
-    yydebug = 1;
     /* Read test file from command line */
     bool verbose = false;
     string tmp = argv[1];
@@ -329,19 +298,15 @@ int main(int argc, char* argv[]) {
     }
 
     for (int i=start; i<argc; i++){
-        yylineno = 1;
-        yycolumn = 0;
         string filename = argv[i];
         yyin = fopen(argv[i], "r");
         
-        printf("The source code of %s is: \n", argv[i]);
+        printf("\nThe source code of %s is:\n ", argv[i]);
         yyparse();
 
         grammarTree* tmp = root;
-        // if (verbose){
-        //     cout << endl;
+        // if (verbose)
         //     outputTree(root, 0);
-        // }
         floorPrint(root, filename, verbose);
         nodePrint(tmp, filename, verbose);
         Clean(root);

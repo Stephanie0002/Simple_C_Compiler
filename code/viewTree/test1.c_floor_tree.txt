@@ -5,25 +5,27 @@
 25 BType 26 IDENT 27 none 28 TempF 29 BlockItem 30 TempF 31 BlockItem 
 32 INT 33 TempF 34 BlockItem 35 Stmt 36 TempF 37 BlockItem 38 Stmt 
 39 none 40 Decl 41 IF 42 ( 43 Cond 44 ) 45 Stmt 46 ELSE 47 Stmt 48 TempF 49 BlockItem 50 Stmt 51 RETURN 52 Exp 53 ; 
-54 VarDecl 55 RelExp 56 RETURN 57 Exp 58 ; 59 block 60 TempF 61 BlockItem 62 Decl 63 WHILE 64 ( 65 Cond 66 ) 67 Stmt 68 OPExp 
-69 BType 70 VarDef 71 TempC 72 ; 73 RelExp 74 EQ_OP 75 RelExp 76 OPExp 77 { 78 TempF 79 } 80 TempF 81 BlockItem 82 Stmt 83 VarDecl 84 RelExp 85 block 86 UnaryExp 
-87 INT 88 IDENT 89 none 90 OPExp 91 OPExp 92 UnaryExp 93 TempF 94 BlockItem 95 none 96 Decl 97 LVal 98 = 99 Exp 100 ; 101 BType 102 VarDef 103 TempC 104 ; 105 RelExp 106 < 107 RelExp 108 { 109 TempF 110 } 111 PrimaryExp 
-112 UnaryExp 113 UnaryExp 114 PrimaryExp 115 TempF 116 BlockItem 117 Stmt 118 VarDecl 119 IDENT 120 OPExp 121 INT 122 IDENT 123 = 124 InitVal 125 none 126 OPExp 127 OPExp 128 TempF 129 BlockItem 130 NUMBER 
-131 PrimaryExp 132 PrimaryExp 133 LVal 134 none 135 Stmt 136 RETURN 137 Exp 138 ; 139 BType 140 VarDef 141 Tempc 142 ; 143 UnaryExp 144 Exp 145 UnaryExp 146 UnaryExp 147 TempF 148 BlockItem 149 Stmt 
-150 LVal 151 NUMBER 152 IDENT 153 LVal 154 = 155 Exp 156 ; 157 OPExp 158 INT 159 IDENT 160 TempC 161 , 162 VarDef 163 IDENT 164 ( 165 ) 166 OPExp 167 PrimaryExp 168 PrimaryExp 169 TempF 170 BlockItem 171 Stmt 172 LVal 173 = 174 Exp 175 ; 
-176 IDENT 177 IDENT 178 OPExp 179 UnaryExp 180 none 181 IDENT 182 UnaryExp 183 LVal 184 LVal 185 TempF 186 BlockItem 187 Stmt 188 Exp 189 ; 190 IDENT 191 OpExp 
-192 UnaryExp 193 PrimaryExp 194 PrimaryExp 195 IDENT 196 IDENT 197 none 198 Decl 199 IF 200 ( 201 Cond 202 ) 203 Stmt 204 ELSE 205 Stmt 206 OPExp 207 OPExp 208 + 209 OPExp 
-210 PrimaryExp 211 LVal 212 NUMBER 213 VarDecl 214 RelExp 215 block 216 block 217 UnaryExp 218 UnaryExp 219 UnaryExp 
-220 ( 221 Exp 222 ) 223 IDENT 224 BType 225 VarDef 226 TempC 227 ; 228 RelExp 229 > 230 RelExp 231 { 232 TempF 233 } 234 { 235 TempF 236 } 237 IDENT 238 ( 239 FuncFParams 240 ) 241 PrimaryExp 242 PrimaryExp 
-243 OpExp 244 INT 245 IDENT 246 = 247 InitVal 248 none 249 OPExp 250 OPExp 251 TempF 252 BlockItem 253 TempF 254 BlockItem 255 Exp 256 TempG 257 LVal 258 NUMBER 
-259 OPExp 260 * 261 OPExp 262 Exp 263 UnaryExp 264 UnaryExp 265 none 266 Stmt 267 none 268 Stmt 269 OPExp 270 none 271 IDENT 
-272 UnaryExp 273 UnaryExp 274 OPExp 275 PrimaryExp 276 PrimaryExp 277 LVal 278 = 279 Exp 280 ; 281 LVal 282 = 283 Exp 284 ; 285 UnaryExp 
-286 PrimaryExp 287 IDENT 288 ( 289 FuncFParams 290 ) 291 UnaryExp 292 LVal 293 NUMBER 294 IDENT 295 OPExp 296 IDENT 297 OPExp 298 PrimaryExp 
-299 LVal 300 Exp 301 TempG 302 IDENT 303 ( 304 ) 305 IDENT 306 UnaryExp 307 UnaryExp 308 LVal 
-309 IDENT 310 OpExp 311 none 312 IDENT 313 ( 314 FuncFParams 315 ) 316 PrimaryExp 317 IDENT 
-318 OPExp 319 - 320 OPExp 321 Exp 322 TempG 323 NUMBER 
-324 UnaryExp 325 UnaryExp 326 OPExp 327 none 
-328 PrimaryExp 329 PrimaryExp 330 UnaryExp 
-331 LVal 332 NUMBER 333 PrimaryExp 
-334 IDENT 335 LVal 
-336 IDENT 
+54 VarDecl 55 LOrExp 56 RETURN 57 Exp 58 ; 59 block 60 TempF 61 BlockItem 62 Decl 63 WHILE 64 ( 65 Cond 66 ) 67 Stmt 68 AddExp 
+69 BType 70 VarDef 71 TempC 72 ; 73 LAndExp 74 AddExp 75 { 76 TempF 77 } 78 TempF 79 BlockItem 80 Stmt 81 VarDecl 82 LOrExp 83 block 84 MulExp 
+85 INT 86 IDENT 87 none 88 EqExp 89 MulExp 90 TempF 91 BlockItem 92 none 93 Decl 94 LVal 95 = 96 Exp 97 ; 98 BType 99 VarDef 100 TempC 101 ; 102 LAndExp 103 { 104 TempF 105 } 106 UnaryExp 
+107 EqExp 108 EQ_OP 109 RelExp 110 UnaryExp 111 TempF 112 BlockItem 113 Stmt 114 VarDecl 115 IDENT 116 AddExp 117 INT 118 IDENT 119 = 120 InitVal 121 none 122 EqExp 123 TempF 124 BlockItem 125 PrimaryExp 
+126 RelExp 127 AddExp 128 PrimaryExp 129 none 130 Stmt 131 RETURN 132 Exp 133 ; 134 BType 135 VarDef 136 Tempc 137 ; 138 MulExp 139 Exp 140 RelExp 141 TempF 142 BlockItem 143 Stmt 144 NUMBER 
+145 AddExp 146 MulExp 147 LVal 148 LVal 149 = 150 Exp 151 ; 152 AddExp 153 INT 154 IDENT 155 TempC 156 , 157 VarDef 158 UnaryExp 159 AddExp 160 RelExp 161 < 162 AddExp 163 TempF 164 BlockItem 165 Stmt 166 LVal 167 = 168 Exp 169 ; 
+170 MulExp 171 UnaryExp 172 IDENT 173 IDENT 174 AddExp 175 MulExp 176 none 177 IDENT 178 IDENT 179 ( 180 ) 181 MulExp 182 AddExp 183 MulExp 184 TempF 185 BlockItem 186 Stmt 187 Exp 188 ; 189 IDENT 190 AddExp 
+191 UnaryExp 192 PrimaryExp 193 MulExp 194 UnaryExp 195 UnaryExp 196 MulExp 197 UnaryExp 198 none 199 Decl 200 IF 201 ( 202 Cond 203 ) 204 Stmt 205 ELSE 206 Stmt 207 AddExp 208 AddExp 209 + 210 MulExp 
+211 PrimaryExp 212 NUMBER 213 UnaryExp 214 PrimaryExp 215 PrimaryExp 216 UnaryExp 217 PrimaryExp 218 VarDecl 219 LOrExp 220 block 221 block 222 MulExp 223 MulExp 224 UnaryExp 
+225 LVal 226 PrimaryExp 227 LVal 228 NUMBER 229 PrimaryExp 230 LVal 231 BType 232 VarDef 233 TempC 234 ; 235 LAndExp 236 { 237 TempF 238 } 239 { 240 TempF 241 } 242 UnaryExp 243 UnaryExp 244 PrimaryExp 
+245 IDENT 246 ( 247 Exp 248 ) 249 IDENT 250 LVal 251 IDENT 252 INT 253 IDENT 254 = 255 InitVal 256 none 257 EqExp 258 TempF 259 BlockItem 260 TempF 261 BlockItem 262 IDENT 263 ( 264 FuncFParams 265 ) 266 PrimaryExp 267 NUMBER 
+268 AddExp 269 IDENT 270 Exp 271 RelExp 272 none 273 Stmt 274 none 275 Stmt 276 Exp 277 TempG 278 LVal 
+279 MulExp 280 AddExp 281 RelExp 282 > 283 AddExp 284 LVal 285 = 286 Exp 287 ; 288 LVal 289 = 290 Exp 291 ; 292 AddExp 293 none 294 IDENT 
+295 MulExp 296 * 297 UnaryExp 298 MulExp 299 AddExp 300 MulExp 301 IDENT 302 AddExp 303 IDENT 304 AddExp 305 MulExp 
+306 UnaryExp 307 IDENT 308 ( 309 FuncFParams 310 ) 311 UnaryExp 312 MulExp 313 UnaryExp 314 MulExp 315 MulExp 316 UnaryExp 
+317 PrimaryExp 318 Exp 319 TempG 320 IDENT 321 ( 322 ) 323 UnaryExp 324 PrimaryExp 325 UnaryExp 326 UnaryExp 327 PrimaryExp 
+328 LVal 329 AddExp 330 none 331 PrimaryExp 332 NUMBER 333 IDENT 334 ( 335 FuncFParams 336 ) 337 PrimaryExp 338 LVal 
+339 IDENT 340 AddExp 341 - 342 MulExp 343 LVal 344 Exp 345 TempG 346 NUMBER 347 IDENT 
+348 MulExp 349 UnaryExp 350 IDENT 351 AddExp 352 none 
+353 UnaryExp 354 PrimaryExp 355 MulExp 
+356 PrimaryExp 357 NUMBER 358 UnaryExp 
+359 LVal 360 PrimaryExp 
+361 IDENT 362 LVal 
+363 IDENT 
