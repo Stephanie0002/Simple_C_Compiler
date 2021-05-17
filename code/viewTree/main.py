@@ -1,8 +1,8 @@
 from graphviz import Digraph
 
 # file_name = 'test1.c_node_tree.txt'
-# file_name = 'test2.c_node_tree.txt'
-file_name = 'tree.txt'
+file_name = 'test2.c_node_tree.txt'
+# file_name = 'tree.txt'
 
 with open(file_name, 'r') as file:
     items = file.read().split()

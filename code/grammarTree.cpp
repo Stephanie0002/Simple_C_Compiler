@@ -129,13 +129,15 @@ void floorPrint(grammarTree *root, string filename, bool verbose)
 
             tempVec.push_back(a);
 
-            if (p->left)
+            grammarTree *tmp = p->left;
+            if (tmp)
             {
-                q.push(p->left);
-            }
-            if (p->right)
-            {
-                q.push(p->right);
+                q.push(tmp);
+                while (tmp->right)
+                {
+                    q.push(tmp->right);
+                    tmp = tmp->right;
+                }
             }
         }
         //  Floor print
@@ -168,23 +170,55 @@ void nodePrint(grammarTree *root, string filename, bool verbose)
             grammarTree *p = q.front();
             q.pop();
 
-            if (p->left)
+            grammarTree *tmp = p->left;
+            if (tmp)
             {
                 if (verbose)
                 {
-                    cout << p->id << " " << p->name << " " << p->left->id << " " << p->left->name << endl;
+                    if (tmp->name == "INT" || tmp->name == "IDENT" || tmp->name == "NUMBER")
+                    {
+                        cout << p->id << " " << p->name << " " << tmp->id << " " << tmp->name << ":" << tmp->content << endl;
+                    }
+                    else
+                    {
+                        cout << p->id << " " << p->name << " " << tmp->id << " " << tmp->name << endl;
+                    }
                 }
-                outfile << p->id << " " << p->name << " " << p->left->id << " " << p->left->name << endl;
-                q.push(p->left);
-            }
-            if (p->right)
-            {
-                if (verbose)
+                if (tmp->name == "INT" || tmp->name == "IDENT" || tmp->name == "NUMBER")
                 {
-                    cout << p->id << " " << p->name << " " << p->right->id << " " << p->right->name << endl;
+                    outfile << p->id << " " << p->name << " " << tmp->id << " " << tmp->name << ":" << tmp->content << endl;
                 }
-                outfile << p->id << " " << p->name << " " << p->right->id << " " << p->right->name << endl;
-                q.push(p->right);
+                else
+                {
+                    outfile << p->id << " " << p->name << " " << tmp->id << " " << tmp->name << endl;
+                }
+                q.push(tmp);
+
+                while (tmp->right)
+                {
+                    if (verbose)
+                    {
+                        if (tmp->right->name == "INT" || tmp->right->name == "IDENT" || tmp->right->name == "NUMBER")
+                        {
+                            cout << p->id << " " << p->name << " " << tmp->right->id << " " << tmp->right->name << ":" << tmp->right->content << endl;
+                        }
+                        else
+                        {
+                            cout << p->id << " " << p->name << " " << tmp->right->id << " " << tmp->right->name << endl;
+                        }
+                    }
+                    if (tmp->right->name == "INT" || tmp->right->name == "IDENT" || tmp->right->name == "NUMBER")
+                    {
+                        outfile << p->id << " " << p->name << " " << tmp->right->id << " " << tmp->right->name << ":" << tmp->right->content << endl;
+                    }
+                    else
+                    {
+                        outfile << p->id << " " << p->name << " " << tmp->right->id << " " << tmp->right->name << endl;
+                    }
+
+                    q.push(tmp->right);
+                    tmp = tmp->right;
+                }
             }
         }
     }
@@ -208,6 +242,10 @@ void outputTree(grammarTree *root, int level)
                 cout << ":" << root->content;
             }
             else if (root->name == "NUMBER")
+            {
+                cout << ":" << root->content << " ";
+            }
+            else if (root->name == "IDENT")
             {
                 cout << ":" << root->content << " ";
             }
