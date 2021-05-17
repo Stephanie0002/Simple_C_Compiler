@@ -1,8 +1,13 @@
+# env config
 **/.vscode
 **/.idea
 **/venv/
+# parser gen intermediate
 code/lex.yy.c
-code/y.tab.c
-code/y.tab.h
-**/*.exe
+code/*.tab.c
+code/*.tab.h
 **/*.output
+# executable
+**/*.exe
+# viewTree intermediate
+**/viewTree/*tree.txt

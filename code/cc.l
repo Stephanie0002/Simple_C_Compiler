@@ -74,6 +74,7 @@ H			[a-fA-F0-9]
 ")"		{ count(); yylval.tree =createTree(")", 0, yylineno);		return(')'); }
 
 [\t\v\n\f ]     { count(); }
+[\r]			{}
 . 				{ printf("<src>:%d:%d: error: [Lexical] unmatched character \'%s\'\n", yylineno, yycolumn, yytext); exit(0);}
 
 %%
