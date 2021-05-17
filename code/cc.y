@@ -279,6 +279,7 @@ void yyerror(char const *s)
 }
 
 int main(int argc, char* argv[]) {
+    yydebug = 1;
     /* Read test file from command line */
     bool verbose = false;
     string tmp = argv[1];
@@ -301,7 +302,7 @@ int main(int argc, char* argv[]) {
         string filename = argv[i];
         yyin = fopen(argv[i], "r");
         
-        printf("\nThe source code of %s is: ", argv[i]);
+        printf("The source code of %s is: \n", argv[i]);
         yyparse();
 
         grammarTree* tmp = root;
