@@ -158,6 +158,15 @@ void nodePrint(grammarTree *root, string filename, bool verbose)
     cout << endl;
     if (root == NULL)
         return;
+    // remove dir/ preceding
+    for (auto i = filename.size(); i != 0; i--)
+    {
+        if (filename[i] == '\\' || filename[i] == '/')
+        {
+            filename = filename.substr(i+1);
+            break;
+        }
+    }
     filename = "viewTree/" + filename + "_node_tree.txt";
     ofstream outfile(filename);
     queue<grammarTree *> q;
