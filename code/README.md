@@ -10,8 +10,7 @@
 **3.使用**
 linux：
        
-       bash run.bash              (进行语法分析，输出语法树文件)
-       ./cc.exe false 文件名
+       bash run.bash              (进行语法分析，输出语法树文件，需要修改其内./cc.exe false 文件名为需要编译的文件名)
        python ./viewTree/main.py  (可视化刚刚生成的语法树)
        
 windows: ???
