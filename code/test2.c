@@ -1,6 +1,7 @@
 // Use complex expression in if structure
 int main()
 {
+    /* 
     int a;
     int b;
     int c;
@@ -21,4 +22,5 @@ int main()
         putint(result);
     }
     return 0;
+    */
 }
