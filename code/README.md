@@ -16,7 +16,7 @@ linux：
 bash run.bash              
 ```
 
-进行语法分析，输出语法树文件，需要修改其内  `./cc.exe false 文件名`  为需要编译的文件名
+进行语法分析，输出语法树文件，需要修改其内  `RUN_FILE_CC` 的值为需要编译的文件名
 
 *OR 进行语法树测试*：
 
@@ -24,9 +24,9 @@ bash run.bash
 bash test.bash
 ```
 
-进行语法分析，输出语法树文件并可视化，需要修改其内  `./cc.exe false 文件名`  为需要编译的文件名以及
+进行语法分析，输出语法树文件并可视化，需要修改其内  `TEST_FILE_CC`  为需要编译的文件名
 
-`python ./viewTree/main.py -path 文件名`  为cc.exe生成的文件名
+`TEST_FILE_PY`    为cc生成的文件名类似 ： -path *.c_node_tree.txt
 
 (该python文件`usage: main.py [-h] [-path PATH] [-path PATH] ... [-path PATH]`)
 
