@@ -89,7 +89,7 @@ void comment()
 	yycolumn = 0;
     char c, prev = 0;
   
-	while (cin >> c)
+	while ((c = yyinput()) != 0)
 	{
 		if (c == '/' && prev == '*')
 			return;
