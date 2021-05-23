@@ -12,13 +12,17 @@ def gen_Digraph(file_name):
         if (i/2) % 2 == 1:
             g.edge(items[i-2], items[i])
     print(g.source)
+    g.view()
     g.render()
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("path", help="path of *_node_tree.txt")
+    parser.add_argument("-path", nargs=1, action='append', help="path of *_node_tree.txt")
     args = parser.parse_args()
-    gen_Digraph(args.path)
+    # print(vars(args)['path'][0])
+    list = vars(args)['path']
+    for i in range(0,len(list)):
+        gen_Digraph(list[i][0])
 
 
 if __name__ == '__main__':
