@@ -23,7 +23,7 @@ L			[a-zA-Z_]
 H			[a-fA-F0-9]
 
 %%
-"/*"([^\*]|(\*)*[^\*/])*(\*)*"*/" {}
+"/*"			{ comment(); }
 "//"[^\n]*      {  }
 
 "for" 			{printf("Undifined reserved word \'for\'!"); exit(0);}
@@ -82,6 +82,20 @@ H			[a-fA-F0-9]
 int yywrap(void)
 {
 	return 1;
+}
+
+void comment()
+{
+	yycolumn = 0;
+    char c, prev = 0;
+  
+	while ((c = yyinput()) != 0)
+	{
+		if (c == '/' && prev == '*')
+			return;
+		prev = c;
+	}
+	printf("unterminated comment");
 }
 
 void count(void)
