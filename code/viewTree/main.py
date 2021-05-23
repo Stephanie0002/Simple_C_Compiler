@@ -11,8 +11,8 @@ def gen_Digraph(file_name):
         g.node(items[i], items[i+1])
         if (i/2) % 2 == 1:
             g.edge(items[i-2], items[i])
-    print(g.source)
-    g.view()
+    # print(g.source)
+    # g.view()
     g.render()
 
 def main():
