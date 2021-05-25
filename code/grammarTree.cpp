@@ -271,9 +271,9 @@ void outputTree(grammarTree *root, int level)
 
 void Clean(grammarTree *node)
 {
-    if (node == NULL)
-        return;
-    Clean(node->left);
-    delete node;
-    Clean(node->right);
+    if (node) {
+        Clean(node->left);
+        Clean(node->right);
+        delete node;
+    }
 }
