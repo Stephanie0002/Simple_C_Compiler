@@ -303,7 +303,7 @@ int main(int argc, char* argv[]) {
         grammarTree* tmp = root;
         // if (verbose)
         //     outputTree(root, 0);
-        //floorPrint(root, filename, verbose);
+        floorPrint(root, filename, verbose);
         nodePrint(tmp, filename, verbose);
         Clean(root);
 

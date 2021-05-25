@@ -8,7 +8,7 @@ from pprint import pprint
 
 def main():
     os.chdir('../code')
-    for path in glob.glob('../test/functional_test/62*.sc'):
+    for path in glob.glob('../test/functional_test/[0]*.sc'):
         fileBasenameNoExtension = path.rsplit('\\')[-1]
         print(f"testing w/ {fileBasenameNoExtension}")
         try:
