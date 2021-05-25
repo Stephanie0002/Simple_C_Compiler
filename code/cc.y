@@ -24,7 +24,7 @@ void yyerror(const char *);
 }
 
 %token <tree> NUMBER CONST IDENT
-%token <tree> INT VOID
+%token <tree> INT
 %token <tree> IF ELSE WHILE BREAK CONTINUE RETURN
 %token <tree> '+' '-' '*' '/' '%' '<' '>' '!' '='
 %token <tree> LE_OP GE_OP EQ_OP NE_OP AND_OP OR_OP 
@@ -36,7 +36,7 @@ void yyerror(const char *);
 %type <tree> Exp PrimaryExp UnaryExp LVal AddExp LOrExp UnaryOp MulExp RelExp EqExp LAndExp
 %type <tree> FuncDef FuncFParam FuncFParams FuncRParams BType
 %type <tree> Block BlockItem
-%type <tree> TempA TempB TempC TempD TempE TempF TempG
+%type <tree> ConstDef_list ConstExp_list VarDef_list Exp_list FuncFParam_list BlockItem_list
 %type <tree> Stmt Cond
 
 %nonassoc LOWER_THAN_ELSE
@@ -60,12 +60,12 @@ Decl:
 
 // 常量声明
 ConstDecl:
-        CONST BType ConstDef TempA ';'{$$ = createTree("ConstDecl", 5, $1, $2, $3, $4, $5);}
+        CONST BType ConstDef ConstDef_list ';'{$$ = createTree("ConstDecl", 5, $1, $2, $3, $4, $5);}
     ;
 
-TempA:
-        TempA ',' ConstDef{$$ = createTree("TempA", 3, $1, $2, $3);}
-    |   {$$ = createTree("TempA", -1, yylineno);}
+ConstDef_list:
+        ConstDef_list ',' ConstDef{$$ = createTree("ConstDef_list", 3, $1, $2, $3);}
+    |   {$$ = createTree("ConstDef_list", -1, yylineno);}
     ;
 
 // 基本类型
@@ -83,21 +83,21 @@ ConstDef:
 ConstInitVal:
         ConstExp{$$ = createTree("ConstInitVal", 1, $1);}
     |   '{' '}'{$$ = createTree("ConstInitVal", 2, $1, $2);}
-    |   '{' ConstExp TempB '}'{$$ = createTree("ConstInitVal", 4, $1, $2, $3, $4);}
+    |   '{' ConstExp ConstExp_list '}'{$$ = createTree("ConstInitVal", 4, $1, $2, $3, $4);}
     ;
-TempB:
-        TempB ',' ConstExp{$$ = createTree("TempB", 3, $1, $2, $3);}
-    |   {$$ = createTree("TempB", -1, yylineno);}
+ConstExp_list:
+        ConstExp_list ',' ConstExp{$$ = createTree("ConstExp_list", 3, $1, $2, $3);}
+    |   {$$ = createTree("ConstExp_list", -1, yylineno);}
     ;
 
 // 变量声明
 VarDecl:
-        BType VarDef TempC ';'{$$ = createTree("VarDecl", 4, $1, $2, $3, $4);}
+        BType VarDef VarDef_list ';'{$$ = createTree("VarDecl", 4, $1, $2, $3, $4);}
     ;
 
-TempC:
-        TempC ',' VarDef{$$ = createTree("Tempc", 3, $1, $2, $3);}
-    |   {$$ = createTree("TempC", -1, yylineno);}
+VarDef_list:
+        VarDef_list ',' VarDef{$$ = createTree("VarDef_list", 3, $1, $2, $3);}
+    |   {$$ = createTree("VarDef_list", -1, yylineno);}
     ;
 
 // 变量定义
@@ -112,12 +112,12 @@ VarDef:
 InitVal:
         Exp{$$ = createTree("InitVal", 1, $1);}
     |   '{' '}'{$$ = createTree("InitVal", 2, $1, $2);}
-    |   '{' Exp TempD '}'{$$ = createTree("InitVal", 4, $1, $2, $3, $4);}
+    |   '{' Exp Exp_list '}'{$$ = createTree("InitVal", 4, $1, $2, $3, $4);}
     ;
 
-TempD:
-        TempD ',' Exp{$$ = createTree("TempD", 3, $1, $2, $3);}
-    |   {$$ = createTree("TempD", -1, yylineno);}
+Exp_list:
+        Exp_list ',' Exp{$$ = createTree("Exp_list", 3, $1, $2, $3);}
+    |   {$$ = createTree("Exp_list", -1, yylineno);}
     ;
 
 // 函数定义
@@ -128,12 +128,12 @@ FuncDef:
 
 // 函数形参表
 FuncFParams: 
-        FuncFParam TempE{$$ = createTree("FuncFparams", 2, $1, $2);}
+        FuncFParam FuncFParam_list{$$ = createTree("FuncFParams", 2, $1, $2);}
     ;
 
-TempE:
-        TempE ',' FuncFParam{$$ = createTree("TempE", 3, $1, $2, $3);}
-    |   {$$ = createTree("TempE", -1, yylineno);}
+FuncFParam_list:
+        FuncFParam_list ',' FuncFParam{$$ = createTree("FuncFParam_list", 3, $1, $2, $3);}
+    |   {$$ = createTree("FuncFParam_list", -1, yylineno);}
     ;
 
 // 函数形参
@@ -144,12 +144,12 @@ FuncFParam:
 
 // 语句块
 Block:
-        '{' TempF '}'{$$ = createTree("block", 3, $1, $2, $3);}
+        '{' BlockItem_list '}'{$$ = createTree("block", 3, $1, $2, $3);}
     ;
     
-TempF:
-    TempF BlockItem{$$ = createTree("TempF", 2, $1, $2);}
-    |   {$$ = createTree("TempF", -1, yylineno);}
+BlockItem_list:
+    BlockItem_list BlockItem{$$ = createTree("BlockItem_list", 2, $1, $2);}
+    |   {$$ = createTree("BlockItem_list", -1, yylineno);}
     ;
 
 // 语句块项
@@ -213,11 +213,7 @@ UnaryOp:
 
 // 函数实参表
 FuncRParams:
-        Exp TempG{$$ = createTree("FuncFParams", 2, $1, $2);}
-    ;
-TempG:
-        TempG ',' Exp{$$ = createTree("TempG", 3, $1, $2, $3);}
-    |   {$$ = createTree("TempG", -1, yylineno);}
+        Exp Exp_list{$$ = createTree("FuncFParams", 2, $1, $2);}
     ;
 
 // 加减表达式
@@ -307,7 +303,7 @@ int main(int argc, char* argv[]) {
         grammarTree* tmp = root;
         // if (verbose)
         //     outputTree(root, 0);
-        floorPrint(root, filename, verbose);
+        //floorPrint(root, filename, verbose);
         nodePrint(tmp, filename, verbose);
         Clean(root);
 

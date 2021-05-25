@@ -4,23 +4,25 @@ usage: $ cc\test> py .\run_test.py
 import glob
 import os
 import subprocess
+from pprint import pprint
 
 def main():
     os.chdir('../code')
-    for path in glob.glob('../test/functional_test/08_c*.sc'):
+    for path in glob.glob('../test/functional_test/62*.sc'):
+        fileBasenameNoExtension = path.rsplit('\\')[-1]
+        print(f"testing w/ {fileBasenameNoExtension}")
         try:
-            p = subprocess.run(['./cc.exe', 'false', path], timeout=5, 
+            p = subprocess.run(['./cc.exe', 'false', path], timeout=5,
                             check=True, encoding='utf-8', stdout=subprocess.PIPE)
-        except subprocess.TimeoutExpired as e:
-            print("TimeoutExpired")
+        except (subprocess.TimeoutExpired, subprocess.CalledProcessError) as e:
+            print(e)
             print(e.output)
         else:
             if "error" in p.stdout:
                 print(p.stdout)
             else:
-                p = subprocess.run(['py', 'main.py', path.rsplit('\\')[-1]+"_node_tree.txt"],
+                p = subprocess.run(['py', 'main.py', '-path', fileBasenameNoExtension+"_node_tree.txt"],
                                 check=True, encoding='utf-8', cwd='viewTree', stdout=subprocess.PIPE)
-        break #TODO
 
 
 if __name__ == '__main__':

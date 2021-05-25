@@ -32,10 +32,10 @@ H			[a-fA-F0-9]
 "char"			{printf("Undifined reserved word \'char\'!"); exit(0);}
 "double"		{printf("Undifined reserved word \'double\'!"); exit(0);}
 "float"			{printf("Undifined reserved word \'float\'!"); exit(0);}
+"void"			{printf("Undifined reserved word \'void\'!"); exit(0);}
 
 "const"			{ count(); yylval.tree =createTree("CONST", 0, yylineno); 	return(CONST); }
 "int"			{ count(); yylval.tree =createTree("INT", 0, yylineno); 	return(INT); }
-"void"			{ count(); yylval.tree =createTree("VOID", 0, yylineno); 	return(VOID); }
 "if"			{ count(); yylval.tree =createTree("IF", 0, yylineno); 		return(IF); }
 "else"			{ count(); yylval.tree =createTree("ELSE", 0, yylineno); 	return(ELSE); }
 "while"			{ count(); yylval.tree =createTree("WHILE", 0, yylineno); 	return(WHILE); }
