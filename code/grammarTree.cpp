@@ -163,7 +163,7 @@ void nodePrint(grammarTree *root, string filename, bool verbose)
     {
         if (filename[i] == '\\' || filename[i] == '/')
         {
-            filename = filename.substr(i+1);
+            filename = filename.substr(i + 1);
             break;
         }
     }
@@ -272,49 +272,100 @@ void outputTree(grammarTree *root, int level)
 /* remove meaningless tokens;
    fold branches caused by precedence distinguishing;
  */
-grammarTree *grammarTree::tailor() {
-  // postorder
-  if (left) {
-    left = left->tailor();
-  }
-  if (right) {
-    right = right->tailor();
-  }
-  /* Case 1: Add -> Mul -> Unary -> Primary -> .
-   * Case 2: list -> list -> none
-   */
-  switch (type()) {
-  case Garbage: {
-    return fold_rchain();
-  } break;
-  case List:
-    if (nb_child() == 0) {
-      return fold_rchain();
-    } else {
-      return fold_lchain();
+grammarTree *grammarTree::tailor()
+{
+    // postorder
+    if (left)
+    {
+        left = left->tailor();
+    }
+    if (right)
+    {
+        right = right->tailor();
+    }
+    /* Case 1: Add -> Mul -> Unary -> Primary -> .
+     * Case 2: list -> list -> none
+     */
+    switch (type())
+    {
+    case Garbage:
+    {
+        return fold_rchain();
     }
     break;
-  case BinExpr:
-    if (nb_child() == 1) {
-      return fold_lchain();
+    case List:
+        if (nb_child() == 0)
+        {
+            return fold_rchain();
+        }
+        else
+        {
+            return fold_lchain();
+        }
+        break;
+    case BinExpr:
+        if (nb_child() == 1)
+        {
+            return fold_lchain();
+        }
+        break;
+    default:
+        if (name == "UnaryExp")
+        {
+            if (nb_child() == 1)
+            {
+                return fold_lchain();
+            }
+            else if (nb_child() == 4)
+            {
+                auto c = left;
+                c->right = c->right->fold_rchain(); // '('
+                c = c->right;
+                c->right = c->right->fold_rchain(); // ')'
+            }
+        }
+        else if (name == "PrimaryExp")
+        {
+            if (nb_child() == 3)
+            {
+                // get Exp child
+                left = left->fold_rchain();               // '('
+                left->right = left->right->fold_rchain(); // ')'
+            }
+            if (nb_child() == 1)
+            {
+                return fold_lchain();
+            }
+        }
+        else if (name == "Exp")
+        {
+            if (nb_child() == 1)
+            {
+                return fold_lchain();
+            }
+        }
+        else if (name == "Block")
+        {
+            left = left->fold_rchain(); // '{'
+            auto c = left;
+            while (c->right)
+            {
+                if (c->right->name == "}")
+                {
+                    c->right = c->right->fold_rchain(); // '}'
+                    break;
+                }
+                c = c->right;
+            }
+        }
+        else if (name == "FuncDef")
+        {
+            auto c = left->right;
+            c->right = c->right->fold_rchain(); // '('
+            c = c->right;
+            c->right = c->right->fold_rchain(); // ')'
+        }
+        break;
     }
-    break;
-  default:
-    if (name == "UnaryExp") {
-      if (nb_child() == 1) {
-        return fold_lchain();
-      }
-    } else if (name == "PrimaryExp") {
-      if (nb_child() == 1) {
-        return fold_lchain();
-      }
-      else {
-        // get Exp child
-        left = left->fold_rchain(); // '('
-        left->right = left->right->fold_rchain(); // ')'
-      }
-    }
-    break;
-  }
-  return this;
+    return this;
 }

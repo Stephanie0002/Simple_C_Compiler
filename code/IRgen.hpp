@@ -1,5 +1,5 @@
 #include "AST.hpp"
-#include "llvm/ADT/APFloat.h"
+#include "llvm/ADT/APInt.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constants.h"
@@ -64,7 +64,7 @@ Function *getFunction(std::string Name) {
 }
 
 Value *NumberExprAST::codegen() {
-  return ConstantFP::get(*TheContext, APFloat(Val));
+  return ConstantInt::get(*TheContext, APInt(32, Val, true));
 }
 
 Value *VariableExprAST::codegen() {
@@ -90,8 +90,8 @@ Value *BinaryExprAST::codegen() {
     return Builder->CreateFMul(L, R, "multmp");
   case '<':
     L = Builder->CreateFCmpULT(L, R, "cmptmp");
-    // Convert bool 0/1 to double 0.0 or 1.0
-    return Builder->CreateUIToFP(L, Type::getDoubleTy(*TheContext), "booltmp");
+    // Convert bool 0/1 to int 0 or 1
+    return Builder->CreateUIToFP(L, Type::getInt32Ty(*TheContext), "booltmp");
   default:
     return LogErrorV("invalid binary operator");
   }
@@ -162,7 +162,7 @@ Value *IfExprAST::codegen() {
   // Emit merge block.
   TheFunction->getBasicBlockList().push_back(MergeBB);
   Builder->SetInsertPoint(MergeBB);
-  PHINode *PN = Builder->CreatePHI(Type::getDoubleTy(*TheContext), 2, "iftmp");
+  PHINode *PN = Builder->CreatePHI(Type::getInt32Ty(*TheContext), 2, "iftmp");
 
   PN->addIncoming(ThenV, ThenBB);
   PN->addIncoming(ElseV, ElseBB);
@@ -204,7 +204,7 @@ Value *ForExprAST::codegen() {
 
   // Start the PHI node with an entry for Start.
   PHINode *Variable =
-      Builder->CreatePHI(Type::getDoubleTy(*TheContext), 2, VarName);
+      Builder->CreatePHI(Type::getInt32Ty(*TheContext), 2, VarName);
   Variable->addIncoming(StartVal, PreheaderBB);
 
   // Within the loop, the variable is defined equal to the PHI node.  If it
@@ -261,14 +261,14 @@ Value *ForExprAST::codegen() {
     NamedValues.erase(VarName);
 
   // for expr always returns 0.0.
-  return Constant::getNullValue(Type::getDoubleTy(*TheContext));
+  return Constant::getNullValue(Type::getInt32Ty(*TheContext));
 }
 
 Function *PrototypeAST::codegen() {
-  // Make the function type:  double(double,double) etc.
-  std::vector<Type *> Doubles(Args.size(), Type::getDoubleTy(*TheContext));
+  // Make the function type:  int(int,int) etc.
+  std::vector<Type *> Ints(Args.size(), Type::getInt32Ty(*TheContext));
   FunctionType *FT =
-      FunctionType::get(Type::getDoubleTy(*TheContext), Doubles, false);
+      FunctionType::get(Type::getInt32Ty(*TheContext), Ints, false);
 
   Function *F =
       Function::Create(FT, Function::ExternalLinkage, Name, TheModule.get());

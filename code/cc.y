@@ -122,13 +122,13 @@ Exp_list:
 
 // 函数定义
 FuncDef:
-        BType IDENT '(' ')' Block{$$ = createTree("FuncDef", 5, $1, $2, $3, $4, $5);}
-    |   BType IDENT '(' FuncFParams ')' Block{$$ = createTree("FuncDef", 6, $1, $2, $3, $4, $5, $6);}
+        BType IDENT '(' FuncFParams ')' Block{$$ = createTree("FuncDef", 6, $1, $2, $3, $4, $5, $6);}
     ;
 
 // 函数形参表
 FuncFParams: 
         FuncFParam FuncFParam_list{$$ = createTree("FuncFParams", 2, $1, $2);}
+    |   {$$ = createTree("FuncFParams", -1, yylineno);}
     ;
 
 FuncFParam_list:
@@ -199,7 +199,6 @@ PrimaryExp:
 // 一元表达式
 UnaryExp:
         PrimaryExp{$$ = createTree("UnaryExp", 1, $1);}
-    |   IDENT '(' ')'{$$ = createTree("UnaryExp", 3, $1, $2, $3);}
     |   IDENT '(' FuncRParams ')'{$$ = createTree("UnaryExp", 4, $1, $2, $3, $4);}
     |   UnaryOp UnaryExp{$$ = createTree("UnaryExp", 2, $1, $2);}
     ;
@@ -214,6 +213,7 @@ UnaryOp:
 // 函数实参表
 FuncRParams:
         Exp Exp_list{$$ = createTree("FuncRParams", 2, $1, $2);}
+    |   {$$ = createTree("FuncRParams", -1, yylineno);}
     ;
 
 // 加减表达式
