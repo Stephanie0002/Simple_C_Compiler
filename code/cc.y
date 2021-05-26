@@ -4,7 +4,7 @@
 #include <cstdio>
 #include <string>
 
-#include "grammarTree.h"
+#include "syntaxTree.h"
 
 using namespace std;
 
