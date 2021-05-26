@@ -144,7 +144,7 @@ FuncFParam:
 
 // 语句块
 Block:
-        '{' BlockItem_list '}'{$$ = createTree("block", 3, $1, $2, $3);}
+        '{' BlockItem_list '}'{$$ = createTree("Block", 3, $1, $2, $3);}
     ;
     
 BlockItem_list:
@@ -213,7 +213,7 @@ UnaryOp:
 
 // 函数实参表
 FuncRParams:
-        Exp Exp_list{$$ = createTree("FuncFParams", 2, $1, $2);}
+        Exp Exp_list{$$ = createTree("FuncRParams", 2, $1, $2);}
     ;
 
 // 加减表达式
@@ -303,9 +303,10 @@ int main(int argc, char* argv[]) {
         grammarTree* tmp = root;
         // if (verbose)
         //     outputTree(root, 0);
+        root->tailor();
         floorPrint(root, filename, verbose);
         nodePrint(tmp, filename, verbose);
-        Clean(root);
+        delete root;
 
         fclose(yyin);
         printf("\n");

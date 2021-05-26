@@ -8,7 +8,7 @@ from pprint import pprint
 
 def main():
     os.chdir('../code')
-    for path in glob.glob('../test/functional_test/[0]*.sc'):
+    for path in glob.glob('../test/functional_test\\19_neg_expr.sc'):
         fileBasenameNoExtension = path.rsplit('\\')[-1]
         print(f"testing w/ {fileBasenameNoExtension}")
         try:
@@ -21,6 +21,7 @@ def main():
             if "error" in p.stdout:
                 print(p.stdout)
             else:
+                # seems that graphviz won't update timestamp of existing img
                 p = subprocess.run(['py', 'main.py', '-path', fileBasenameNoExtension+"_node_tree.txt"],
                                 check=True, encoding='utf-8', cwd='viewTree', stdout=subprocess.PIPE)
 

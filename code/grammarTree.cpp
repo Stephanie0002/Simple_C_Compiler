@@ -269,11 +269,52 @@ void outputTree(grammarTree *root, int level)
     }
 }
 
-void Clean(grammarTree *node)
-{
-    if (node) {
-        Clean(node->left);
-        Clean(node->right);
-        delete node;
+/* remove meaningless tokens;
+   fold branches caused by precedence distinguishing;
+ */
+grammarTree *grammarTree::tailor() {
+  // postorder
+  if (left) {
+    left = left->tailor();
+  }
+  if (right) {
+    right = right->tailor();
+  }
+  /* Case 1: Add -> Mul -> Unary -> Primary -> .
+   * Case 2: list -> list -> none
+   */
+  switch (type()) {
+  case Garbage: {
+    return fold_rchain();
+  } break;
+  case List:
+    if (nb_child() == 0) {
+      return fold_rchain();
+    } else {
+      return fold_lchain();
     }
+    break;
+  case BinExpr:
+    if (nb_child() == 1) {
+      return fold_lchain();
+    }
+    break;
+  default:
+    if (name == "UnaryExp") {
+      if (nb_child() == 1) {
+        return fold_lchain();
+      }
+    } else if (name == "PrimaryExp") {
+      if (nb_child() == 1) {
+        return fold_lchain();
+      }
+      else {
+        // get Exp child
+        left = left->fold_rchain(); // '('
+        left->right = left->right->fold_rchain(); // ')'
+      }
+    }
+    break;
+  }
+  return this;
 }

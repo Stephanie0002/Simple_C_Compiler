@@ -14,7 +14,7 @@ def gen_Digraph(file_name):
     print("The diagram of "+file_name)
     print(g.source)
     # g.view()
-    g.render()
+    g.render(cleanup=True)
 
 def main():
     parser = argparse.ArgumentParser()
