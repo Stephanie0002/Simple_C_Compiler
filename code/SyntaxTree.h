@@ -22,6 +22,77 @@ struct syntaxTree
     int id = -1;
     struct syntaxTree *left;
     struct syntaxTree *right;
+    // prep for tailor; classified on Nb_opr
+    using Type_t = enum { BinExpr,
+                          List,
+                          Garbage,
+                          NA };
+    Type_t type()
+    {
+        string name(name);
+        if (string(",;none").find(name) != string::npos)
+        {
+            return Garbage;
+        }
+        else if (name.find("list") != string::npos)
+        {
+            return List;
+        }
+        else
+        {
+            for (string &&s : {"AddExp", "MulExp", "RelExp", "EqExp", "LAndExp", "LOrExp"})
+            {
+                if (name == s)
+                {
+                    return BinExpr;
+                }
+            }
+            return NA;
+        }
+    }
+    bool orphan() { return right == nullptr; }
+    int nb_child()
+    {
+        int cnt = 0;
+        if (auto c = left)
+        {
+            while (c)
+            {
+                cnt++;
+                c = c->right;
+            }
+        }
+        return cnt;
+    }
+    syntaxTree *fold_lchain()
+    {
+        syntaxTree *rv = this->left;
+        // rebuild sibling ptr
+        syntaxTree *sib = rv;
+        while (sib->right)
+        {
+            sib = sib->right;
+        }
+        sib->right = this->right;
+        // isolate & delete
+        this->left = this->right = nullptr;
+        delete this;
+        return rv;
+    }
+    syntaxTree *fold_rchain()
+    {
+        syntaxTree *rv = this->right;
+        this->left = this->right = nullptr;
+        delete this;
+        return rv;
+    }
+    syntaxTree *tailor();
+    // cascading deletion
+    ~syntaxTree()
+    {
+        delete left;
+        delete right;
+    }
 };
 
 syntaxTree *createSyntaxTree(const char *name, int num, ...);

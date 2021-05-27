@@ -28,7 +28,7 @@ void yyerror(const char *);
 %token <node> LE_OP GE_OP EQ_OP NE_OP AND_OP OR_OP 
 %token <node> ';' ',' '[' ']' '(' ')' '{' '}'
 
-%type <node> CompUnit Decl 
+%type <node> Program CompUnit Decl 
 %type <node> ConstDecl VarDecl ConstDef ConstInitVal ConstExp
 %type <node> VarDef InitVal
 %type <node> Exp PrimaryExp UnaryExp LVal AddExp LOrExp UnaryOp MulExp RelExp EqExp LAndExp
@@ -48,10 +48,10 @@ Program:
 
 // 编译单元
 CompUnit: 
-        CompUnit Decl{root = createSyntaxTree("CompUnit", 2, $1, $2);}
-    |   Decl{root = createSyntaxTree("CompUnit", 1, $1);}
-    |   CompUnit FuncDef{root = createSyntaxTree("CompUnit", 2, $1, $2);}
-    |   FuncDef{root = createSyntaxTree("CompUnit", 1, $1);}
+        CompUnit Decl{$$ = createSyntaxTree("CompUnit", 2, $1, $2);}
+    |   Decl{$$ = createSyntaxTree("CompUnit", 1, $1);}
+    |   CompUnit FuncDef{$$ = createSyntaxTree("CompUnit", 2, $1, $2);}
+    |   FuncDef{$$ = createSyntaxTree("CompUnit", 1, $1);}
     ;
 
 // 声明

@@ -96,7 +96,7 @@ void analyseProgram(const syntaxTree *node)
     {
         return;
     }
-    if (checkProduction(node, 1, "CompUint"))
+    if (checkProduction(node, 1, "CompUnit"))
     {
         analyseCompUnit(node->left);
     }

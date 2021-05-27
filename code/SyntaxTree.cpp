@@ -21,13 +21,13 @@ syntaxTree *createSyntaxTree(const char *name, int num, ...)
         }
         temp->left = NULL;
         temp->right = NULL;
-        temp->content = "none";
-        temp->name = "none";
+        temp->content = "Null";
+        temp->name = "Null";
         temp->lineno = lineno;
 
         root->left = temp;
         root->right = NULL;
-        root->content = "none";
+        root->content = "Null";
         root->name = name;
         root->lineno = lineno;
 
@@ -135,6 +135,11 @@ void floorTraverse(syntaxTree *root)
 
 void nodePrint(syntaxTree *root, string filename, bool verbose)
 {
+    if (root->id == -1)
+    {
+        syntaxTree *tmp = root;
+        floorTraverse(tmp);
+    }
     printf("\n");
     if (root == NULL)
         return;
@@ -220,4 +225,106 @@ void destroySyntaxTree(syntaxTree *node)
     destroySyntaxTree(node->left);
     delete node;
     destroySyntaxTree(node->right);
+}
+
+/* remove meaningless tokens;
+   fold branches caused by precedence distinguishing;
+ */
+syntaxTree *syntaxTree::tailor()
+{
+    string name(this->name);
+    // postorder
+    if (left)
+    {
+        left = left->tailor();
+    }
+    if (right)
+    {
+        right = right->tailor();
+    }
+    /* Case 1: Add -> Mul -> Unary -> Primary -> .
+     * Case 2: list -> list -> none
+     */
+    switch (type())
+    {
+    case Garbage:
+    {
+        return fold_rchain();
+    }
+    break;
+    case List:
+        if (nb_child() == 0)
+        {
+            return fold_rchain();
+        }
+        else
+        {
+            return fold_lchain();
+        }
+        break;
+    case BinExpr:
+        if (nb_child() == 1)
+        {
+            return fold_lchain();
+        }
+        break;
+    default:
+        if (name == "UnaryExp")
+        {
+            if (nb_child() == 1)
+            {
+                return fold_lchain();
+            }
+            else if (nb_child() == 4)
+            {
+                auto c = left;
+                c->right = c->right->fold_rchain(); // '('
+                c = c->right;
+                c->right = c->right->fold_rchain(); // ')'
+            }
+        }
+        else if (name == "PrimaryExp")
+        {
+            if (nb_child() == 3)
+            {
+                // get Exp child
+                left = left->fold_rchain();               // '('
+                left->right = left->right->fold_rchain(); // ')'
+            }
+            if (nb_child() == 1)
+            {
+                return fold_lchain();
+            }
+        }
+        else if (name == "Exp")
+        {
+            if (nb_child() == 1)
+            {
+                return fold_lchain();
+            }
+        }
+        else if (name == "Block")
+        {
+            left = left->fold_rchain(); // '{'
+            auto c = left;
+            while (c->right)
+            {
+                if (c->right->name == "}")
+                {
+                    c->right = c->right->fold_rchain(); // '}'
+                    break;
+                }
+                c = c->right;
+            }
+        }
+        else if (name == "FuncDef")
+        {
+            auto c = left->right;
+            c->right = c->right->fold_rchain(); // '('
+            c = c->right;
+            c->right = c->right->fold_rchain(); // ')'
+        }
+        break;
+    }
+    return this;
 }
