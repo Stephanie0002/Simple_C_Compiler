@@ -1,6 +1,5 @@
 #include <cstdio>
 #include <cstdlib>
-#include <iostream>
 #include <string>
 #include <algorithm>
 #include "syntaxTree.h"
@@ -35,12 +34,11 @@ int main(int argc, char **argv)
     {
         if (argc == 2)
         {
-            printf("Error [Others]: No input files.");
+            fprintf(stderr, "Error [Others]: No input files.");
             return 1;
         }
         start = 2;
     }
-
     for (int i = start; i < argc; i++)
     {
         string filename = argv[i];
@@ -54,7 +52,7 @@ int main(int argc, char **argv)
 
         if (verbose == true)
         {
-            cout << "Begin to compile file " << filename << endl;
+            printf("Begin to compile file %s\n", filename.c_str());
         }
         yyrestart(file);
         yyparse();

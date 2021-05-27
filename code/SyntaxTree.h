@@ -5,15 +5,14 @@
 #include <cstdlib>
 #include <cstring>
 #include <cstdarg>
-#include <iostream>
-#include <string>
 #include <queue>
 #include <fstream>
+#include "utils.h"
+
+using namespace std;
 
 extern char *yytext;
 extern int yylineno;
-
-using namespace std;
 
 struct syntaxTree
 {
@@ -25,8 +24,8 @@ struct syntaxTree
     struct syntaxTree *right;
 };
 
-struct syntaxTree *createSyntaxTree(const char *name, int num, ...);
-struct syntaxTree *addNullNode(const char *name, int lineno, int col);
+syntaxTree *createSyntaxTree(const char *name, int num, ...);
+syntaxTree *addNullNode(const char *name, int lineno, int col);
 void destroySyntaxTree(syntaxTree *node);
 void floorTraverse(syntaxTree *root);
 void nodePrint(syntaxTree *root, string out_name, bool verbose);

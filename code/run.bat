@@ -1,5 +1,5 @@
 del cc
 flex cc.l
 bison -vdty cc.y
-g++ -std=c++11 -o cc main.cpp syntaxTree.cpp Parser.cpp symbol.cpp hashSet.cpputils.cpp lex.yy.c y.tab.c
-cc ture test2.c
+g++ -std=c++11 -o cc main.cpp syntaxTree.cpp Parser.cpp Symbol.cpp hashSet.cpp utils.cpp lex.yy.c y.tab.c
+cc true ../test/error_test/test2.c

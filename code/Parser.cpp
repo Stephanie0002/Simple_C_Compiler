@@ -78,11 +78,32 @@ void semanticInit(const syntaxTree *root)
         printf("\n---------Sementic Analysis---------\n");
     }
 
-    analyseCompUnit(root);
+    analyseProgram(root);
     // if (debug)
     // {
     //     printSymbolTable(symbol_table);
     // }
+}
+
+void analyseProgram(const syntaxTree *node)
+{
+    if (debug)
+    {
+        printf("analyse Program:\t");
+    }
+
+    if (node == NULL)
+    {
+        return;
+    }
+    if (checkProduction(node, 1, "CompUint"))
+    {
+        analyseCompUnit(node->left);
+    }
+    else
+    {
+        printProductionError(node, "Program");
+    }
 }
 
 void analyseCompUnit(const syntaxTree *node)

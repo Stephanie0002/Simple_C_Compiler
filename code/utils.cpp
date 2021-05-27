@@ -1,18 +1,17 @@
 #include "utils.h"
-#include <cstdlib>
 
-string int2str(int n)
+const char *int2str(int n)
 {
     char buf[10];
     sprintf(buf, "%d", n);
-    string s = buf;
+    const char *s = buf;
     return s;
 }
 
-int str2int(string s)
+int str2int(const char *s)
 {
     int n;
-    n = atoi(s.c_str());
+    n = atoi(s);
     return n;
 }
 
