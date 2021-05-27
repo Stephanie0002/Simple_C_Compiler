@@ -3,6 +3,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <string>
 using namespace std;
 
 typedef struct Data_ myData;
@@ -19,7 +20,8 @@ typedef enum DataType_
 typedef enum BasicType_
 {
     INT,
-    FLOAT
+    FLOAT,
+    BOOL
 } myBasicType;
 struct Data_
 {
@@ -39,11 +41,12 @@ struct Data_
 typedef enum SymbolType_
 {
     VAR,
-    FUNC
+    FUNC,
+    CONST
 } mySymbolType;
 struct Symbol_
 {
-    const char *name;
+    string name;
     mySymbolType symbol_type;
     union
     {
@@ -71,7 +74,7 @@ struct SymbolList_
     mySymbolList *next;
 };
 
-mySymbol *createSymbol(const char *name, mySymbolType type);
+mySymbol *createSymbol(string name, mySymbolType type);
 void printDataType(myData *data);
 
 #endif

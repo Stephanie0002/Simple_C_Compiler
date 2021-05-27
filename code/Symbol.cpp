@@ -1,17 +1,15 @@
 #include "Symbol.h"
 
-mySymbol *createSymbol(const char *name, mySymbolType type)
+mySymbol *createSymbol(string name, mySymbolType type)
 {
-    mySymbol *symbol = (mySymbol *)malloc(sizeof(mySymbol));
-
+    mySymbol *symbol = new mySymbol;
     symbol->name = name;
     symbol->symbol_type = type;
-
     switch (type)
     {
     case VAR:
     case FUNC:
-        symbol->func = (myFunc *)malloc(sizeof(myFunc));
+        symbol->func = new myFunc;
         break;
     default:
         fprintf(stderr, "ERROR [Semantic] Wrong symbol type when creating symbol.\n");
@@ -27,18 +25,18 @@ void printDataType(myData *data)
         printf("(null)\n");
         return;
     }
-    const char *data_type[] = {"BASIC", "ARRAY"};
-    printf("data type: %s\n", data_type[data->data_type]);
-    printf("data is r value: %s\n", data->is_r_value ? "yes" : "no");
+    string data_type[] = {"BASIC", "ARRAY"};
+    printf("\tdata type: %s\n", data_type[data->data_type].c_str());
+    printf("\tdata is r value: %s\n", data->is_r_value ? "yes" : "no");
     if (data->data_type == BASIC)
     {
-        const char *basic_type[] = {"INT", "FLOAT"};
-        printf("basic: %s\n", basic_type[data->basic]);
+        string basic_type[] = {"INT", "FLOAT", "BOOL"};
+        printf("\tbasic: %s\n", basic_type[data->basic].c_str());
     }
     else if (data->data_type == ARRAY)
     {
-        printf("array size: %d\n", data->array.size);
-        printf("array data type: %s\n", data_type[data->array.elem->data_type]);
+        printf("\tarray size: %d\n", data->array.size);
+        printf("\tarray data type: %s\n", data_type[data->array.elem->data_type].c_str());
         printDataType(data->array.elem);
     }
     else

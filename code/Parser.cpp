@@ -9,10 +9,12 @@ int unnamedCount;
 
 bool checkProduction(const syntaxTree *parent, int node_num, ...)
 {
+
     va_list valist;
     va_start(valist, node_num);
     bool flag = true;
     syntaxTree *child = parent->left;
+
     for (int i = 0; i < node_num; i++)
     {
         if (child == NULL)
@@ -20,8 +22,8 @@ bool checkProduction(const syntaxTree *parent, int node_num, ...)
             flag = false;
             break;
         }
-        const char *node_name = va_arg(valist, const char *);
-        if (!equalString(node_name, child->name))
+        string node_name = va_arg(valist, const char *);
+        if (node_name != child->name)
         {
             flag = false;
             break;
@@ -54,20 +56,16 @@ void semanticInit(const syntaxTree *root)
     unnamedCount = 0;
 
     // add read and write
-    const char *func_name;
-
-    func_name = "read";
-    mySymbol *read = createSymbol(func_name, FUNC);
+    mySymbol *read = createSymbol("read", FUNC);
     read->func->ret_type = &INTtype;
     read->func->param_num = 0;
     read->func->param_list = NULL;
     insert(symbol_table, read);
 
-    func_name = "write";
-    mySymbol *write = createSymbol(func_name, FUNC);
+    mySymbol *write = createSymbol("write", FUNC);
     write->func->ret_type = &INTtype;
     write->func->param_num = 1;
-    myParam *param = (myParam *)malloc(sizeof(myParam));
+    myParam *param = new myParam;
     param->type = &INTtype;
     param->next = NULL;
     write->func->param_list = param;
@@ -79,10 +77,10 @@ void semanticInit(const syntaxTree *root)
     }
 
     analyseProgram(root);
-    // if (debug)
-    // {
-    //     printSymbolTable(symbol_table);
-    // }
+    if (debug)
+    {
+        printSymbolTable(symbol_table);
+    }
 }
 
 void analyseProgram(const syntaxTree *node)
@@ -96,6 +94,7 @@ void analyseProgram(const syntaxTree *node)
     {
         return;
     }
+
     if (checkProduction(node, 1, "CompUnit"))
     {
         analyseCompUnit(node->left);
@@ -117,7 +116,7 @@ void analyseCompUnit(const syntaxTree *node)
     {
         return;
     }
-    if (checkProduction(node, 2, "CompUint", "Decl"))
+    if (checkProduction(node, 2, "CompUnit", "Decl"))
     {
         analyseCompUnit(node->left);
         analyseDecl(node->left->right);
@@ -183,7 +182,6 @@ void analyseConstDecl(const syntaxTree *node)
         analyseBType(node->left->right);
         analyseConstDef(node->left->right->right);
         analyseConstDef_list(node->left->right->right->right);
-        // No need to analyse ";"
     }
     else
     {
@@ -205,12 +203,10 @@ void analyseConstDef_list(const syntaxTree *node)
     if (checkProduction(node, 3, "ConstDef_list", ",", "ConstDef"))
     {
         analyseConstDef_list(node->left);
-        // Remains to be solved
         analyseConstDef(node->left->right->right);
     }
     else if (checkProduction(node, 1, "Null"))
     {
-        // Remains to be solved
     }
     else
     {
@@ -218,33 +214,38 @@ void analyseConstDef_list(const syntaxTree *node)
     }
 }
 
-void analyseBType(const syntaxTree *node)
+myData *analyseBType(const syntaxTree *node)
 {
     if (debug)
     {
         printf("analyse Btype:\t");
     }
 
-    if (node == NULL)
-    {
-        return;
-    }
+    myData *type = new myData;
     if (checkProduction(node, 1, "INT"))
     {
-        //
+
+        type->data_type = BASIC;
+        type->basic = INT;
+        type->is_r_value = false;
     }
     else if (checkProduction(node, 1, "FLOAT"))
     {
-        //
+        type->data_type = BASIC;
+        type->basic = FLOAT;
+        type->is_r_value = false;
     }
     else if (checkProduction(node, 1, "BOOL"))
     {
-        //
+        type->data_type = BASIC;
+        type->basic = BOOL;
+        type->is_r_value = false;
     }
     else
     {
         printProductionError(node, "BType");
     }
+    return type;
 }
 
 void analyseConstDef(const syntaxTree *node)
@@ -260,8 +261,8 @@ void analyseConstDef(const syntaxTree *node)
     }
     if (checkProduction(node, 3, "IDENT", "=", "ConstInitVal"))
     {
-        //
-        //
+        // myData* ele =
+        // mySymbol* ele = createSymbol(node->left->content, type);
         analyseConstInitVal(node->left->right->right);
     }
     else if (checkProduction(node, 6, "IDENT", "[", "ConstExp", "]", "=", "ConstInitVal"))
@@ -303,7 +304,7 @@ void analyseConstInitVal(const syntaxTree *node)
     {
         //
         analyseConstExp(node->left->right);
-        analyseConstExp_list(node->left->right);
+        analyseConstExp_list(node->left->right->right);
         //
     }
     else
@@ -401,9 +402,9 @@ void analyseVarDef(const syntaxTree *node)
     {
         return;
     }
-    if (checkProduction(node, 1, "VarDef"))
+    if (checkProduction(node, 1, "IDENT"))
     {
-        analyseVarDef(node->left);
+        // analyseIDENT(node->left);
     }
     else if (checkProduction(node, 4, "IDENT", "[", "ConstExp", "]"))
     {
@@ -506,11 +507,15 @@ void analyseFuncDef(const syntaxTree *node)
     }
     if (checkProduction(node, 5, "BType", "IDENT", "(", ")", "Block"))
     {
-        analyseBType(node->left);
-        //
-        //
-        //
+        myData *func_ret_type = analyseBType(node->left);
+        mySymbol *func_symbol = createSymbol(node->left->right->content, FUNC);
+        func_symbol->func->ret_type = func_ret_type;
+        func_symbol->func->param_num = 0;
+        func_symbol->func->param_list = NULL;
+        insert(symbol_table, func_symbol);
+
         analyseBlock(node->left->right->right->right->right);
+        // printf("1");
     }
     else if (checkProduction(node, 6, "BType", "IDENT", "(", "FuncFParams", ")", "Block"))
     {
@@ -641,8 +646,8 @@ void analyseBlockItem_list(const syntaxTree *node)
     }
     if (checkProduction(node, 2, "BlockItem_list", "BlockItem"))
     {
-        analyseBlockItem(node->left);
-        analyseBlockItem_list(node->left->right);
+        analyseBlockItem_list(node->left);
+        analyseBlockItem(node->left->right);
     }
     else if (checkProduction(node, 1, "Null"))
     {
@@ -667,11 +672,11 @@ void analyseBlockItem(const syntaxTree *node)
     }
     if (checkProduction(node, 1, "Decl"))
     {
-        analyseConstDecl(node->left);
+        analyseDecl(node->left);
     }
     else if (checkProduction(node, 1, "Stmt"))
     {
-        analyseDecl(node->left);
+        analyseStmt(node->left);
     }
     else
     {
@@ -1179,11 +1184,6 @@ void analyseConstExp(const syntaxTree *node)
     }
 }
 
-void printSemanticError(int error_type, int lineno, int col, char *msg)
-{
-    fprintf(stderr, "Error [Semantic] [%d] at line %d, col %d: %s.\n", error_type, lineno, col, msg);
-}
-
 void printProductionError(const syntaxTree *node, const char *msg)
 {
     syntaxTree *child = node->left;
@@ -1192,10 +1192,10 @@ void printProductionError(const syntaxTree *node, const char *msg)
         return;
     }
 
-    fprintf(stderr, "ERROR [Semantic] when analyse %s: No matched production [%s ---> %s", msg, node->name, child->name);
+    fprintf(stderr, "Error [Semantic] when analyse %s: No matched production [%s ---> %s", msg, node->name.c_str(), child->name.c_str());
     while (child->right)
     {
-        fprintf(stderr, " %s", child->right->name);
+        fprintf(stderr, " %s", child->right->name.c_str());
         child = child->right;
     }
     fprintf(stderr, "].\n");
@@ -1213,19 +1213,29 @@ void printSymbolTable(myHashSet symbol_table)
             count++;
             printf("[Symbol %d]\n", count);
             mySymbol *s = p->symbol;
-            const char *symbol_type[] = {"VAR", "FUNC"};
-            printf("Name: %s\tSymbol Type: %s\n", s->name, symbol_type[s->symbol_type]);
+            string symbol_type[] = {"VAR", "FUNC"};
+            printf("Name: %s\nSymbol Type: %s\n", s->name.c_str(), symbol_type[s->symbol_type].c_str());
             if (s->symbol_type == FUNC)
             {
                 printf("Return Type: \n");
                 printDataType(s->func->ret_type);
                 printf("Parameter Nums: %d\n", s->func->param_num);
-                printf("Parameter List: \n");
+                printf("Parameter List: ");
                 myParam *pl = s->func->param_list;
-                for (myParam *pa = pl; pa != NULL; pa = pa->next)
+                if (pl == NULL)
                 {
-                    printf("ParamType: \n");
-                    printDataType(pa->type);
+                    printf("Null\n");
+                }
+                else
+                {
+                    printf("\n");
+                    int i = 1;
+                    for (myParam *pa = pl; pa != NULL; pa = pa->next)
+                    {
+                        printf("Param: %d\n", i);
+                        printDataType(pa->type);
+                        i++;
+                    }
                 }
             }
             else

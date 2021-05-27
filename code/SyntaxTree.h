@@ -16,8 +16,8 @@ extern int yylineno;
 
 struct syntaxTree
 {
-    const char *name;
-    const char *content;
+    string name;
+    string content;
     int lineno;
     int id = -1;
     struct syntaxTree *left;
@@ -29,7 +29,6 @@ struct syntaxTree
                           NA };
     Type_t type()
     {
-        string name(name);
         if (string(",;none").find(name) != string::npos)
         {
             return Garbage;
@@ -95,8 +94,8 @@ struct syntaxTree
     }
 };
 
-syntaxTree *createSyntaxTree(const char *name, int num, ...);
-syntaxTree *addNullNode(const char *name, int lineno, int col);
+syntaxTree *createSyntaxTree(string name, int num, ...);
+syntaxTree *addNullNode(string name, int lineno, int col);
 void destroySyntaxTree(syntaxTree *node);
 void floorTraverse(syntaxTree *root);
 void nodePrint(syntaxTree *root, string out_name, bool verbose);

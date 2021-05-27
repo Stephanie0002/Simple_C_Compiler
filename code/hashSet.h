@@ -3,7 +3,7 @@
 
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
+#include <string>
 #include "Symbol.h"
 
 using namespace std;
@@ -24,9 +24,9 @@ struct hashSet_
 };
 
 myHashSet initHashSet(int size);
-bool contains(myHashSet set, const char *name, mySymbolType type);
+bool contains(myHashSet set, string name, mySymbolType type);
 void insert(myHashSet set, mySymbol *symbol);
-unsigned int calHash(const char *name);
-mySymbol *get(myHashSet set, const char *name, mySymbolType type);
+unsigned int calHash(string name);
+mySymbol *get(myHashSet set, string name, mySymbolType type);
 
 #endif

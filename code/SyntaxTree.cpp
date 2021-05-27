@@ -1,43 +1,11 @@
 #include "syntaxTree.h"
 
-syntaxTree *createSyntaxTree(const char *name, int num, ...)
+syntaxTree *createSyntaxTree(string name, int num, ...)
 {
-    if (num == -1)
-    {
-        va_list valist;
-        va_start(valist, 0);
-        int lineno = va_arg(valist, int);
-        syntaxTree *root = new syntaxTree();
-        if (!root)
-        {
-            printf("Out of space \n");
-            exit(0);
-        }
-        syntaxTree *temp = new syntaxTree();
-        if (!temp)
-        {
-            printf("Out of space \n");
-            exit(0);
-        }
-        temp->left = NULL;
-        temp->right = NULL;
-        temp->content = "Null";
-        temp->name = "Null";
-        temp->lineno = lineno;
-
-        root->left = temp;
-        root->right = NULL;
-        root->content = "Null";
-        root->name = name;
-        root->lineno = lineno;
-
-        return root;
-    }
-
     syntaxTree *root = new syntaxTree();
     if (!root)
     {
-        printf("Out of space \n");
+        fprintf(stderr, "Error [Syntax] Syntax tree out of space when creating it.\n");
         exit(0);
     }
     root->left = NULL;
@@ -48,17 +16,17 @@ syntaxTree *createSyntaxTree(const char *name, int num, ...)
     va_list valist;
     va_start(valist, num);
 
-    syntaxTree *temp = NULL;
+    syntaxTree *tmp = NULL;
     if (num > 0)
     {
-        temp = va_arg(valist, syntaxTree *);
-        root->left = temp;
-        root->lineno = temp->lineno;
+        tmp = va_arg(valist, syntaxTree *);
+        root->left = tmp;
+        root->lineno = tmp->lineno;
         if (num == 1)
         {
-            if (strlen(temp->content) > 0)
+            if (tmp->content.size() > 0)
             {
-                root->content = temp->content;
+                root->content = tmp->content;
             }
             else
                 root->content = "";
@@ -67,8 +35,8 @@ syntaxTree *createSyntaxTree(const char *name, int num, ...)
         {
             for (int i = 1; i < num; i++)
             {
-                temp->right = va_arg(valist, syntaxTree *);
-                temp = temp->right;
+                tmp->right = va_arg(valist, syntaxTree *);
+                tmp = tmp->right;
             }
         }
     }
@@ -76,6 +44,7 @@ syntaxTree *createSyntaxTree(const char *name, int num, ...)
     {
         int lineno = va_arg(valist, int);
         root->lineno = lineno;
+
         if (root->name == "NUMBER")
         {
             int value;
@@ -91,11 +60,50 @@ syntaxTree *createSyntaxTree(const char *name, int num, ...)
                 value = atoi(yytext); //10进制整数
             root->content = int2str(value);
         }
+        else if (root->name == "TRUE")
+        {
+            root->content = int2str(1);
+        }
+        else if (root->name == "FALSE")
+        {
+            root->content = int2str(0);
+        }
         else
         {
             root->content = yytext;
         }
     }
+    return root;
+}
+
+syntaxTree *addNullNode(string name, int lineno, int col)
+{
+    syntaxTree *root = new syntaxTree;
+    if (!root)
+    {
+        fprintf(stderr, "Error [Syntax] Syntax tree out of space when adding ε node.\n");
+        exit(0);
+    }
+
+    syntaxTree *tmp = new syntaxTree;
+    if (!tmp)
+    {
+        fprintf(stderr, "Error [Syntax] Syntax tree out of space when adding ε node.\n");
+        exit(0);
+    }
+
+    tmp->left = NULL;
+    tmp->right = NULL;
+    tmp->content = "Null";
+    tmp->name = "Null";
+    tmp->lineno = lineno;
+
+    root->left = tmp;
+    root->right = NULL;
+    root->name = name;
+    root->content = "";
+    root->lineno = lineno;
+
     return root;
 }
 
@@ -140,6 +148,7 @@ void nodePrint(syntaxTree *root, string filename, bool verbose)
         syntaxTree *tmp = root;
         floorTraverse(tmp);
     }
+    verbose = true;
     printf("\n");
     if (root == NULL)
         return;
@@ -171,11 +180,11 @@ void nodePrint(syntaxTree *root, string filename, bool verbose)
                 {
                     if (tmp->name == "INT" || tmp->name == "IDENT" || tmp->name == "NUMBER")
                     {
-                        printf("%d %s %d %s:%s\n", p->id, p->name, tmp->id, tmp->name, tmp->content);
+                        printf("%d %s %d %s:%s\n", p->id, p->name.c_str(), tmp->id, tmp->name.c_str(), tmp->content.c_str());
                     }
                     else
                     {
-                        printf("%d %s %d %s\n", p->id, p->name, tmp->id, tmp->name);
+                        printf("%d %s %d %s\n", p->id, p->name.c_str(), tmp->id, tmp->name.c_str());
                     }
                 }
                 if (tmp->name == "INT" || tmp->name == "IDENT" || tmp->name == "NUMBER")
@@ -194,11 +203,11 @@ void nodePrint(syntaxTree *root, string filename, bool verbose)
                     {
                         if (tmp->right->name == "INT" || tmp->right->name == "IDENT" || tmp->right->name == "NUMBER")
                         {
-                            printf("%d %s %d %s:%s\n", p->id, p->name, tmp->right->id, tmp->right->name, tmp->right->content);
+                            printf("%d %s %d %s:%s\n", p->id, p->name.c_str(), tmp->right->id, tmp->right->name.c_str(), tmp->right->content.c_str());
                         }
                         else
                         {
-                            printf("%d %s %d %s\n", p->id, p->name, tmp->right->id, tmp->right->name);
+                            printf("%d %s %d %s\n", p->id, p->name.c_str(), tmp->right->id, tmp->right->name.c_str());
                         }
                     }
                     if (tmp->right->name == "INT" || tmp->right->name == "IDENT" || tmp->right->name == "NUMBER")
@@ -220,11 +229,8 @@ void nodePrint(syntaxTree *root, string filename, bool verbose)
 
 void destroySyntaxTree(syntaxTree *node)
 {
-    if (node == NULL)
-        return;
-    destroySyntaxTree(node->left);
-    delete node;
-    destroySyntaxTree(node->right);
+    delete node->left;
+    delete node->right;
 }
 
 /* remove meaningless tokens;
@@ -232,7 +238,6 @@ void destroySyntaxTree(syntaxTree *node)
  */
 syntaxTree *syntaxTree::tailor()
 {
-    string name(this->name);
     // postorder
     if (left)
     {

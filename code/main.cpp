@@ -52,7 +52,7 @@ int main(int argc, char **argv)
 
         if (verbose == true)
         {
-            printf("Begin to compile file %s\n", filename.c_str());
+            printf("\n---Begin to compile file %s---\n", filename.c_str());
         }
         yyrestart(file);
         yyparse();
@@ -62,8 +62,8 @@ int main(int argc, char **argv)
             syntaxTree *syntax = root;
             syntaxTree *semantic = root;
             nodePrint(syntax, filename, verbose);
-            semanticInit(semantic);
-            destroySyntaxTree(root);
+            semanticAnalysis(semantic);
+            delete root;
         }
 
         fclose(file);

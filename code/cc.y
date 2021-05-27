@@ -37,6 +37,13 @@ void yyerror(const char *);
 %type <node> ConstDef_list ConstExp_list VarDef_list Exp_list FuncFParam_list BlockItem_list
 %type <node> Stmt Cond
 
+// %left '[' ']' '(' ')'
+%right '!'
+%left '/' '*' '%' 
+%left '+' '-'
+%left '>' GE_OP '<' LE_OP EQ_OP NE_OP
+%left AND_OP OR_OP
+%right '='
 %nonassoc LOWER_THAN_ELSE
 %nonassoc ELSE
 %%
@@ -67,7 +74,7 @@ ConstDecl:
 
 ConstDef_list:
         ConstDef_list ',' ConstDef{$$ = createSyntaxTree("ConstDef_list", 3, $1, $2, $3);}
-    |   {$$ = createSyntaxTree("ConstDef_list", -1, yylineno);}
+    |   {$$ = addNullNode("ConstDef_list", yylineno, yycolumn);}
     ;
 
 // 基本类型
@@ -91,7 +98,7 @@ ConstInitVal:
     ;
 ConstExp_list:
         ConstExp_list ',' ConstExp{$$ = createSyntaxTree("ConstExp_list", 3, $1, $2, $3);}
-    |   {$$ = createSyntaxTree("ConstExp_list", -1, yylineno);}
+    |   {$$ = addNullNode("ConstExp_list", yylineno, yycolumn);}
     ;
 
 // 变量声明
@@ -101,7 +108,7 @@ VarDecl:
 
 VarDef_list:
         VarDef_list ',' VarDef{$$ = createSyntaxTree("VarDef_list", 3, $1, $2, $3);}
-    |   {$$ = createSyntaxTree("VarDef_list", -1, yylineno);}
+    |   {$$ = addNullNode("VarDef_list", yylineno, yycolumn);}
     ;
 
 // 变量定义
@@ -121,29 +128,29 @@ InitVal:
 
 Exp_list:
         Exp_list ',' Exp{$$ = createSyntaxTree("Exp_list", 3, $1, $2, $3);}
-    |   {$$ = createSyntaxTree("Exp_list", -1, yylineno);}
+    |   {$$ = addNullNode("Exp_list", yylineno, yycolumn);}
     ;
 
 // 函数定义
 FuncDef:
-        BType IDENT '(' FuncFParams ')' Block{$$ = createSyntaxTree("FuncDef", 6, $1, $2, $3, $4, $5, $6);}
+        BType IDENT '(' ')' Block{$$ = createSyntaxTree("FuncDef", 5, $1, $2, $3, $4, $5);}
+    |   BType IDENT '(' FuncFParams ')' Block{$$ = createSyntaxTree("FuncDef", 6, $1, $2, $3, $4, $5, $6);}
     ;
 
 // 函数形参表
 FuncFParams: 
         FuncFParam FuncFParam_list{$$ = createSyntaxTree("FuncFParams", 2, $1, $2);}
-    |   {$$ = createSyntaxTree("FuncFParams", -1, yylineno);}
     ;
 
 FuncFParam_list:
         FuncFParam_list ',' FuncFParam{$$ = createSyntaxTree("FuncFParam_list", 3, $1, $2, $3);}
-    |   {$$ = createSyntaxTree("FuncFParam_list", -1, yylineno);}
+    |   {$$ = addNullNode("FuncFParam_list", yylineno, yycolumn);}
     ;
 
 // 函数形参
 FuncFParam:
-        BType IDENT{$$ = createSyntaxTree("FuncFparam", 2, $1, $2);}
-    |   BType IDENT '[' ']'{$$ = createSyntaxTree("FuncFparam", 4, $1, $2, $3, $4);}
+        BType IDENT{$$ = createSyntaxTree("FuncFParam", 2, $1, $2);}
+    |   BType IDENT '[' ']'{$$ = createSyntaxTree("FuncFParam", 4, $1, $2, $3, $4);}
     ;
 
 // 语句块
@@ -152,8 +159,8 @@ Block:
     ;
     
 BlockItem_list:
-    BlockItem_list BlockItem{$$ = createSyntaxTree("BlockItem_list", 2, $1, $2);}
-    |   {$$ = createSyntaxTree("BlockItem_list", -1, yylineno);}
+        BlockItem_list BlockItem{$$ = createSyntaxTree("BlockItem_list", 2, $1, $2);}
+    |   {$$ = addNullNode("BlockItem_list", yylineno, yycolumn);}
     ;
 
 // 语句块项
@@ -203,21 +210,21 @@ PrimaryExp:
 // 一元表达式
 UnaryExp:
         PrimaryExp{$$ = createSyntaxTree("UnaryExp", 1, $1);}
+    |   IDENT '(' ')'{$$ = createSyntaxTree("UnaryExp", 3, $1, $2, $3);}
     |   IDENT '(' FuncRParams ')'{$$ = createSyntaxTree("UnaryExp", 4, $1, $2, $3, $4);}
     |   UnaryOp UnaryExp{$$ = createSyntaxTree("UnaryExp", 2, $1, $2);}
     ;
 
 // 单目运算符
 UnaryOp:
-        '+'{$$ = createSyntaxTree("UnaryOP", 1, $1);}
-    |   '-'{$$ = createSyntaxTree("UnaryOP", 1, $1);}
-    |   '!'{$$ = createSyntaxTree("UnaryOP", 1, $1);}
+        '+'{$$ = createSyntaxTree("UnaryOp", 1, $1);}
+    |   '-'{$$ = createSyntaxTree("UnaryOp", 1, $1);}
+    |   '!'{$$ = createSyntaxTree("UnaryOp", 1, $1);}
     ;
 
 // 函数实参表
 FuncRParams:
         Exp Exp_list{$$ = createSyntaxTree("FuncRParams", 2, $1, $2);}
-    |   {$$ = createSyntaxTree("FuncRParams", -1, yylineno);}
     ;
 
 // 加减表达式
@@ -272,6 +279,6 @@ ConstExp:
 void yyerror(char const *s)
 {
 	fflush(stdout);
-	fprintf(stderr, "Error [Syntax] at Line %d, col %d: %s.\n", yylineno, yycolumn, s);
+	fprintf(stderr, "Error [Syntax] at Line %d, col %d: %s.\n", yylineno, yycolumn,s);
     exit(0);
 }

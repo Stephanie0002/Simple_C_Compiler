@@ -2,11 +2,14 @@
 
 myHashSet initHashSet(int size)
 {
-    myHashSet set = (myHashSet)malloc(sizeof(struct hashSet_));
+    myHashSet set = new hashSet_;
     if (set == NULL)
+    {
+        fprintf(stderr, "Error [Senmantic] Allocate space failed when initiating hash set.\n");
         return NULL;
+    }
     set->size = size;
-    set->buckets = (myBucket *)malloc(sizeof(Bucket_) * size);
+    set->buckets = new myBucket[size];
     for (int i = 0; i < size; i++)
     {
         set->buckets[i].symbol_list = NULL;
@@ -14,7 +17,7 @@ myHashSet initHashSet(int size)
     return set;
 }
 
-bool contains(myHashSet set, const char *name, mySymbolType type)
+bool contains(myHashSet set, string name, mySymbolType type)
 {
     unsigned int hash = calHash(name);
     mySymbolList *listhead = set->buckets[hash].symbol_list;
@@ -26,7 +29,7 @@ bool contains(myHashSet set, const char *name, mySymbolType type)
     {
         for (mySymbolList *p = listhead; p != NULL; p = p->next)
         {
-            if (strcmp(p->symbol->name, name) == 0)
+            if (p->symbol->name == name)
             {
                 mySymbolType p_type = p->symbol->symbol_type;
                 switch (type)
@@ -54,7 +57,7 @@ void insert(myHashSet set, mySymbol *symbol)
     mySymbolList *listhead = set->buckets[hash].symbol_list;
     if (listhead == NULL)
     {
-        listhead = (mySymbolList *)malloc(sizeof(mySymbolList));
+        listhead = new mySymbolList;
         listhead->symbol = symbol;
         listhead->next = NULL;
         set->buckets[hash].symbol_list = listhead;
@@ -64,23 +67,23 @@ void insert(myHashSet set, mySymbol *symbol)
         mySymbolList *p = listhead;
         for (; p->next != NULL; p = p->next)
         {
-            if (strcmp(p->symbol->name, symbol->name) == 0 && p->symbol->symbol_type == symbol->symbol_type)
+            if (p->symbol->name == symbol->name && p->symbol->symbol_type == symbol->symbol_type)
             {
                 fprintf(stderr, "ERROR [Semantic] Symbol is already in the symbol table.\n");
             }
         }
-        if (strcmp(p->symbol->name, symbol->name) == 0 && p->symbol->symbol_type == symbol->symbol_type)
+        if (p->symbol->name == symbol->name && p->symbol->symbol_type == symbol->symbol_type)
         {
             fprintf(stderr, "ERROR [Semantic] Symbol is already in the symbol table.\n");
         }
-        mySymbolList *newSymbol = (mySymbolList *)malloc(sizeof(mySymbolList));
+        mySymbolList *newSymbol = new mySymbolList;
         newSymbol->symbol = symbol;
         newSymbol->next = NULL;
         p->next = newSymbol;
     }
 }
 
-mySymbol *get(myHashSet set, const char *name, mySymbolType type)
+mySymbol *get(myHashSet set, string name, mySymbolType type)
 {
     unsigned int hash = calHash(name);
     mySymbolList *listhead = set->buckets[hash].symbol_list;
@@ -92,7 +95,7 @@ mySymbol *get(myHashSet set, const char *name, mySymbolType type)
     {
         for (mySymbolList *p = listhead; p != NULL; p = p->next)
         {
-            if (strcmp(p->symbol->name, name) == 0 && p->symbol->symbol_type == type)
+            if (p->symbol->name == name && p->symbol->symbol_type == type)
             {
                 return p->symbol;
             }
@@ -101,14 +104,14 @@ mySymbol *get(myHashSet set, const char *name, mySymbolType type)
     }
 }
 
-unsigned int calHash(const char *name)
+unsigned int calHash(string name)
 {
-    unsigned int val = 0, i;
-    for (; *name; ++name)
+    unsigned int val = 0, tmp;
+    for (int i = 0; i < name.length(); i++)
     {
-        val = (val << 2) + *name;
-        if (i = val & ~(HASH_SIZE - 1))
-            val = (val ^ (i >> 12)) & (HASH_SIZE - 1);
+        val = (val << 2) + name.at(i);
+        if (tmp = val & ~(HASH_SIZE - 1))
+            val = (val ^ (tmp >> 12)) & (HASH_SIZE - 1);
     }
     return val;
 }

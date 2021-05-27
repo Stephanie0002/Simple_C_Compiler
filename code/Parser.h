@@ -5,6 +5,7 @@
 #include "Symbol.h"
 #include "hashSet.h"
 #include "utils.h"
+#include <string>
 using namespace std;
 
 bool checkProduction(const syntaxTree *parent, int node_num, ...);
@@ -16,7 +17,7 @@ void analyseCompUnit(const syntaxTree *node);
 void analyseDecl(const syntaxTree *node);
 void analyseConstDecl(const syntaxTree *node);
 void analyseConstDef_list(const syntaxTree *node);
-void analyseBType(const syntaxTree *node);
+myData *analyseBType(const syntaxTree *node);
 void analyseConstDef(const syntaxTree *node);
 void analyseConstInitVal(const syntaxTree *node);
 void analyseConstExp_list(const syntaxTree *node);
@@ -48,7 +49,6 @@ void analyseLAndExp(const syntaxTree *node);
 void analyseLOrExp(const syntaxTree *node);
 void analyseConstExp(const syntaxTree *node);
 
-void printSemanticError(int error_type, int lineno, int col, char *msg);
 void printProductionError(const syntaxTree *node, const char *msg);
 void printSymbolTable(myHashSet symbol_table);
 
