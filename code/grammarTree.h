@@ -25,8 +25,8 @@ struct grammarTree
     struct grammarTree *right; // next sibling
     // prep for tailor; classified on Nb_opr
     using Type_t = enum { BinExpr, List, Garbage, NA };
-    Type_t type() {
-      if (string(",;none").find(name) != string::npos) {
+    Type_t type() const {
+      if (string("(),;none").find(name) != string::npos) {
         return Garbage;
       } else if (name.find("list") != string::npos) {
         return List;

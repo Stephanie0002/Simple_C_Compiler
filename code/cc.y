@@ -169,7 +169,6 @@ Stmt:
     |   WHILE '(' Cond ')' Stmt{$$ = createTree("Stmt", 5, $1, $2, $3, $4, $5);}
     |   BREAK ';'{$$ = createTree("Stmt", 2, $1, $2);}
     |   CONTINUE ';'{$$ = createTree("Stmt", 2, $1, $2);}
-    |   RETURN ';'{$$ = createTree("Stmt", 2, $1, $2);}
     |   RETURN Exp ';'{$$ = createTree("Stmt", 3, $1, $2, $3);}
     ;
 

@@ -316,22 +316,9 @@ grammarTree *grammarTree::tailor()
             {
                 return fold_lchain();
             }
-            else if (nb_child() == 4)
-            {
-                auto c = left;
-                c->right = c->right->fold_rchain(); // '('
-                c = c->right;
-                c->right = c->right->fold_rchain(); // ')'
-            }
         }
         else if (name == "PrimaryExp")
         {
-            if (nb_child() == 3)
-            {
-                // get Exp child
-                left = left->fold_rchain();               // '('
-                left->right = left->right->fold_rchain(); // ')'
-            }
             if (nb_child() == 1)
             {
                 return fold_lchain();
@@ -343,6 +330,17 @@ grammarTree *grammarTree::tailor()
             {
                 return fold_lchain();
             }
+        }
+        else if (name == "Stmt")
+        {
+            if (nb_child() == 0)
+            {
+                return fold_rchain();
+            }
+        }
+        else if (name == "BlockItem")
+        {
+            return fold_lchain();
         }
         else if (name == "Block")
         {
@@ -357,13 +355,6 @@ grammarTree *grammarTree::tailor()
                 }
                 c = c->right;
             }
-        }
-        else if (name == "FuncDef")
-        {
-            auto c = left->right;
-            c->right = c->right->fold_rchain(); // '('
-            c = c->right;
-            c->right = c->right->fold_rchain(); // ')'
         }
         break;
     }

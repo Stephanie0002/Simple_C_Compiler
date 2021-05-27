@@ -21,6 +21,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 using namespace llvm;
@@ -32,7 +33,7 @@ using namespace llvm;
 static std::unique_ptr<LLVMContext> TheContext;
 static std::unique_ptr<Module> TheModule;
 static std::unique_ptr<IRBuilder<>> Builder;
-static std::map<std::string, Value *> NamedValues;
+static std::map<std::string, AllocaInst *> NamedValues;
 static std::unique_ptr<legacy::FunctionPassManager> TheFPM;
 static std::map<std::string, std::unique_ptr<PrototypeAST>> FunctionProtos;
 static ExitOnError ExitOnErr;
@@ -63,6 +64,8 @@ Function *getFunction(std::string Name) {
   return nullptr;
 }
 
+// Methods
+
 Value *NumberExprAST::codegen() {
   return ConstantInt::get(*TheContext, APInt(32, Val, true));
 }
@@ -72,7 +75,20 @@ Value *VariableExprAST::codegen() {
   Value *V = NamedValues[Name];
   if (!V)
     return LogErrorV("Unknown variable name");
-  return V;
+  return Builder->CreateLoad(Type::getInt32Ty(*TheContext), V, Name);
+}
+
+//TODO
+Value *UnaryExprAST::codegen() {
+  Value *OperandV = Operand->codegen();
+  if (!OperandV)
+    return nullptr;
+
+  Function *F = getFunction(std::string("unary") + Opcode);
+  if (!F)
+    return LogErrorV("Unknown unary operator");
+
+  return Builder->CreateCall(F, OperandV, "unop");
 }
 
 Value *BinaryExprAST::codegen() {
@@ -81,20 +97,40 @@ Value *BinaryExprAST::codegen() {
   if (!L || !R)
     return nullptr;
 
-  switch (Op) {
-  case '+':
-    return Builder->CreateFAdd(L, R, "addtmp");
-  case '-':
-    return Builder->CreateFSub(L, R, "subtmp");
-  case '*':
-    return Builder->CreateFMul(L, R, "multmp");
-  case '<':
-    L = Builder->CreateFCmpULT(L, R, "cmptmp");
-    // Convert bool 0/1 to int 0 or 1
-    return Builder->CreateUIToFP(L, Type::getInt32Ty(*TheContext), "booltmp");
-  default:
-    return LogErrorV("invalid binary operator");
+  if (Op == "+") {
+    return Builder->CreateAdd(L, R, "addtmp");
+  } else if (Op == "-") {
+    return Builder->CreateSub(L, R, "subtmp");
+  } else if (Op == "*") {
+    return Builder->CreateMul(L, R, "multmp");
+  } else if (Op == "/") {
+    return Builder->CreateSDiv(L, R, "divtmp");
+  } else if (Op == "%") {
+    return Builder->CreateSRem(L, R, "divtmp");
+  } else {
+    std::unordered_map<std::string, CmpInst::Predicate> srel2pred = {
+        {"<", CmpInst::Predicate::ICMP_SLT},
+        {"LE_OP", CmpInst::Predicate::ICMP_SLE},
+        {">", CmpInst::Predicate::ICMP_SGT},
+        {"GE_OP", CmpInst::Predicate::ICMP_SGE},
+        {"EQ_OP", CmpInst::Predicate::ICMP_EQ},
+        {"NE_OP", CmpInst::Predicate::ICMP_NE},
+    };
+    auto it = srel2pred.find(Op);
+    if (it != srel2pred.end()) {
+      L = Builder->CreateICmp(it->second, L, R, "cmptmp");
+      return Builder->CreateSExt(L, Type::getInt32Ty(*TheContext), "i1_i32");
+    } else {
+      return LogErrorV("invalid binary operator");
+    }
   }
+}
+
+Value *VarAssignAST::codegen() {
+  auto val = RHS->codegen();
+  auto var = NamedValues[VarName];
+  Builder->CreateStore(val, var);
+  return val;
 }
 
 Value *CallExprAST::codegen() {
@@ -169,101 +205,6 @@ Value *IfExprAST::codegen() {
   return PN;
 }
 
-// Output for-loop as:
-//   ...
-//   start = startexpr
-//   goto loop
-// loop:
-//   variable = phi [start, loopheader], [nextvariable, loopend]
-//   ...
-//   bodyexpr
-//   ...
-// loopend:
-//   step = stepexpr
-//   nextvariable = variable + step
-//   endcond = endexpr
-//   br endcond, loop, endloop
-// outloop:
-Value *ForExprAST::codegen() {
-  // Emit the start code first, without 'variable' in scope.
-  Value *StartVal = Start->codegen();
-  if (!StartVal)
-    return nullptr;
-
-  // Make the new basic block for the loop header, inserting after current
-  // block.
-  Function *TheFunction = Builder->GetInsertBlock()->getParent();
-  BasicBlock *PreheaderBB = Builder->GetInsertBlock();
-  BasicBlock *LoopBB = BasicBlock::Create(*TheContext, "loop", TheFunction);
-
-  // Insert an explicit fall through from the current block to the LoopBB.
-  Builder->CreateBr(LoopBB);
-
-  // Start insertion in LoopBB.
-  Builder->SetInsertPoint(LoopBB);
-
-  // Start the PHI node with an entry for Start.
-  PHINode *Variable =
-      Builder->CreatePHI(Type::getInt32Ty(*TheContext), 2, VarName);
-  Variable->addIncoming(StartVal, PreheaderBB);
-
-  // Within the loop, the variable is defined equal to the PHI node.  If it
-  // shadows an existing variable, we have to restore it, so save it now.
-  Value *OldVal = NamedValues[VarName];
-  NamedValues[VarName] = Variable;
-
-  // Emit the body of the loop.  This, like any other expr, can change the
-  // current BB.  Note that we ignore the value computed by the body, but don't
-  // allow an error.
-  if (!Body->codegen())
-    return nullptr;
-
-  // Emit the step value.
-  Value *StepVal = nullptr;
-  if (Step) {
-    StepVal = Step->codegen();
-    if (!StepVal)
-      return nullptr;
-  } else {
-    // If not specified, use 1.0.
-    StepVal = ConstantFP::get(*TheContext, APFloat(1.0));
-  }
-
-  Value *NextVar = Builder->CreateFAdd(Variable, StepVal, "nextvar");
-
-  // Compute the end condition.
-  Value *EndCond = End->codegen();
-  if (!EndCond)
-    return nullptr;
-
-  // Convert condition to a bool by comparing non-equal to 0.0.
-  EndCond = Builder->CreateFCmpONE(
-      EndCond, ConstantFP::get(*TheContext, APFloat(0.0)), "loopcond");
-
-  // Create the "after loop" block and insert it.
-  BasicBlock *LoopEndBB = Builder->GetInsertBlock();
-  BasicBlock *AfterBB =
-      BasicBlock::Create(*TheContext, "afterloop", TheFunction);
-
-  // Insert the conditional branch into the end of LoopEndBB.
-  Builder->CreateCondBr(EndCond, LoopBB, AfterBB);
-
-  // Any new code will be inserted in AfterBB.
-  Builder->SetInsertPoint(AfterBB);
-
-  // Add a new entry to the PHI node for the backedge.
-  Variable->addIncoming(NextVar, LoopEndBB);
-
-  // Restore the unshadowed variable.
-  if (OldVal)
-    NamedValues[VarName] = OldVal;
-  else
-    NamedValues.erase(VarName);
-
-  // for expr always returns 0.0.
-  return Constant::getNullValue(Type::getInt32Ty(*TheContext));
-}
-
 Function *PrototypeAST::codegen() {
   // Make the function type:  int(int,int) etc.
   std::vector<Type *> Ints(Args.size(), Type::getInt32Ty(*TheContext));
@@ -296,9 +237,18 @@ Function *FunctionAST::codegen() {
 
   // Record the function arguments in the NamedValues map.
   NamedValues.clear();
-  for (auto &Arg : TheFunction->args())
-    NamedValues[std::string(Arg.getName())] = &Arg;
+  for (auto &Arg : TheFunction->args()) {
+    // alloc stack space
+    auto alloca = Builder->CreateAlloca(Type::getInt32Ty(*TheContext), nullptr,
+                                        Arg.getName());
+    NamedValues[std::string(Arg.getName())] = alloca;
+  }
+  // Pass by Value
+  for (auto &Arg : TheFunction->args()) {
+    Builder->CreateStore(&Arg, NamedValues[std::string(Arg.getName())]);
+  }
 
+  // TODO
   if (Value *RetVal = Body->codegen()) {
     // Finish off the function.
     Builder->CreateRet(RetVal);
