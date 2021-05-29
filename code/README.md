@@ -32,8 +32,12 @@ bash test.bash
 
 windows: ???
 
-注：必须安装提供graphviz
+`注1`：必须安装提供graphviz
 
 linux下：sudo apt install graphviz graphviz-doc;pip install graphviz
 
 Windows下：参考链接https://www.jianshu.com/p/8ede808e6f92
+
+`注2`：必须安装提供llvm
+
+linux下：sudo apt install cmake llvm
