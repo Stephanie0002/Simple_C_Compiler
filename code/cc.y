@@ -17,6 +17,7 @@ extern int yylineno;
 
 int yylex(void);
 void yyerror(const char *);
+extern int IR_entry(const grammarTree *root);
 %}
 
 %union {
@@ -305,10 +306,11 @@ int main(int argc, char* argv[]) {
         root->tailor();
         floorPrint(root, filename, verbose);
         nodePrint(tmp, filename, verbose);
-        delete root;
 
         fclose(yyin);
         printf("\n");
+        IR_entry(root);
+        delete root;
     }
     return 0;
 }

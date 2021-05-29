@@ -1,3 +1,6 @@
+#ifndef IRGEN_H
+#define IRGEN_H
+
 #include "AST.hpp"
 #include "llvm/ADT/APInt.h"
 #include "llvm/ADT/STLExtras.h"
@@ -78,17 +81,16 @@ Value *VariableExprAST::codegen() {
   return Builder->CreateLoad(Type::getInt32Ty(*TheContext), V, Name);
 }
 
-//TODO
 Value *UnaryExprAST::codegen() {
   Value *OperandV = Operand->codegen();
   if (!OperandV)
     return nullptr;
 
-  Function *F = getFunction(std::string("unary") + Opcode);
-  if (!F)
-    return LogErrorV("Unknown unary operator");
-
-  return Builder->CreateCall(F, OperandV, "unop");
+  if (Opcode == '-') {
+    return Builder->CreateNeg(OperandV);
+  } else if (Opcode == '!') {
+    return Builder->CreateNot(OperandV);
+  }
 }
 
 Value *BinaryExprAST::codegen() {
@@ -131,6 +133,15 @@ Value *VarAssignAST::codegen() {
   auto var = NamedValues[VarName];
   Builder->CreateStore(val, var);
   return val;
+}
+
+Value *ReturnExprAST::codegen() {
+  if (Value *RetVal = RHS->codegen()) {
+    // Finish off the function.
+    Builder->CreateRet(RetVal);
+    return RetVal;
+  }
+  return nullptr;
 }
 
 Value *CallExprAST::codegen() {
@@ -248,21 +259,17 @@ Function *FunctionAST::codegen() {
     Builder->CreateStore(&Arg, NamedValues[std::string(Arg.getName())]);
   }
 
-  // TODO
-  if (Value *RetVal = Body->codegen()) {
-    // Finish off the function.
-    Builder->CreateRet(RetVal);
-
-    // Validate the generated code, checking for consistency.
-    verifyFunction(*TheFunction);
-
-    // Run the optimizer on the function.
-    TheFPM->run(*TheFunction);
-
-    return TheFunction;
+  for (auto &&pEAST : Body) {
+    pEAST->codegen();
   }
 
-  // Error reading body, remove function.
-  TheFunction->eraseFromParent();
-  return nullptr;
+  // Validate the generated code, checking for consistency.
+  verifyFunction(*TheFunction);
+
+  // Run the optimizer on the function.
+  TheFPM->run(*TheFunction);
+
+  return TheFunction;
 }
+
+#endif
