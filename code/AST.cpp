@@ -1,4 +1,5 @@
 #include "AST.hpp"
+#include <cassert>
 #include <memory>
 #include <stack>
 #include <string>
@@ -21,7 +22,7 @@ std::unique_ptr<VarDefAST> get_Decl_AST(const grammarTree *r) {
       }
       varnames.push_back(std::make_pair(id, std::move(iv)));
     }
-    return std::make_unique<VarDefAST>(varnames);
+    return std::make_unique<VarDefAST>(std::move(varnames));
   } else {
     assert(false);
   }
@@ -66,7 +67,7 @@ std::unique_ptr<ExprAST> get_Exp_AST(const grammarTree *r) {
           args[i - 1] = std::move(out.top());
           out.pop();
         }
-        out.push(std::make_unique<CallExprAST>(callee, args));
+        out.push(std::make_unique<CallExprAST>(callee, std::move(args)));
       }
       // !0x0
       else {
@@ -133,5 +134,5 @@ std::unique_ptr<FunctionAST> get_FuncDef_AST(const grammarTree *r) {
       body.push_back(get_Decl_AST(item));
     }
   }
-  return std::make_unique<FunctionAST>(proto, body);
+  return std::make_unique<FunctionAST>(std::move(proto), std::move(body));
 }

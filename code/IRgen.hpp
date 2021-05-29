@@ -216,6 +216,10 @@ Value *IfExprAST::codegen() {
   return PN;
 }
 
+Value* VarDefAST::codegen() {
+  return nullptr;
+}
+
 Function *PrototypeAST::codegen() {
   // Make the function type:  int(int,int) etc.
   std::vector<Type *> Ints(Args.size(), Type::getInt32Ty(*TheContext));

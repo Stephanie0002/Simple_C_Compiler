@@ -2,13 +2,10 @@
 **/.vscode
 **/.idea
 **/venv/
-# parser gen intermediate
-code/lex.yy.c
-code/*.tab.c
-code/*.tab.h
-**/*.output
+
 # executable
 **/*.exe
+
 # viewTree intermediate
 **/viewTree/*tree.txt
 **/viewTree/*tree.gv
