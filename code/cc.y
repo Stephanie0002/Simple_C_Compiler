@@ -47,10 +47,10 @@ extern int IR_entry(const grammarTree *root);
 
 // 编译单元
 CompUnit: 
-        CompUnit Decl{root = createTree("CompUnit", 1, $1);}
-    |   Decl{root = createTree("CompUnit", 1, $1);}
-    |   CompUnit FuncDef{root = createTree("CompUnit", 2, $1, $2);}
-    |   FuncDef{root = createTree("CompUnit", 1, $1);}
+        CompUnit Decl{ root = $$ = createTree("CompUnit", 2, $1, $2);}
+    |   Decl{ root = $$ = createTree("CompUnit", 1, $1);}
+    |   CompUnit FuncDef{ root = $$ = createTree("CompUnit", 2, $1, $2);}
+    |   FuncDef{ root = $$ = createTree("CompUnit", 1, $1);}
     ;
 
 // 声明
@@ -309,7 +309,7 @@ int main(int argc, char* argv[]) {
 
         fclose(yyin);
         printf("\n");
-        IR_entry(root);
+        /* IR_entry(root); */
         delete root;
     }
     return 0;

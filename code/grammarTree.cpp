@@ -269,19 +269,29 @@ void outputTree(grammarTree *root, int level)
     }
 }
 
+// tailor_inner() + folding "CompUnit"
+void grammarTree::tailor()
+{
+    tailor_inner();
+    while (left->name == "CompUnit")
+    {
+        left = left->fold_lchain();
+    }
+}
+
 /* remove meaningless tokens;
    fold branches caused by precedence distinguishing;
  */
-grammarTree *grammarTree::tailor()
+grammarTree *grammarTree::tailor_inner()
 {
     // postorder
     if (left)
     {
-        left = left->tailor();
+        left = left->tailor_inner();
     }
     if (right)
     {
-        right = right->tailor();
+        right = right->tailor_inner();
     }
     /* Case 1: Add -> Mul -> Unary -> Primary -> .
      * Case 2: list -> list -> none

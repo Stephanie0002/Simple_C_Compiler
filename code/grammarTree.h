@@ -69,7 +69,8 @@ struct grammarTree
       delete this;
       return rv;
     }
-    grammarTree *tailor();
+    void tailor(); // to be called from root
+    grammarTree *tailor_inner();
     // cascading deletion
     ~grammarTree() {
       delete left;
