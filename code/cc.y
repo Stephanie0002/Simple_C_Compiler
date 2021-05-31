@@ -139,8 +139,8 @@ FuncFParam_list:
 
 // 函数形参
 FuncFParam:
-        BType IDENT{$$ = createTree("FuncFparam", 2, $1, $2);}
-    |   BType IDENT '[' ']'{$$ = createTree("FuncFparam", 4, $1, $2, $3, $4);}
+        BType IDENT{$$ = createTree("FuncFParam", 2, $1, $2);}
+    |   BType IDENT '[' ']'{$$ = createTree("FuncFParam", 4, $1, $2, $3, $4);}
     ;
 
 // 语句块
@@ -205,9 +205,9 @@ UnaryExp:
 
 // 单目运算符
 UnaryOp:
-        '+'{$$ = createTree("UnaryOP", 1, $1);}
-    |   '-'{$$ = createTree("UnaryOP", 1, $1);}
-    |   '!'{$$ = createTree("UnaryOP", 1, $1);}
+        '+'{$$ = createTree("UnaryOp", 1, $1);}
+    |   '-'{$$ = createTree("UnaryOp", 1, $1);}
+    |   '!'{$$ = createTree("UnaryOp", 1, $1);}
     ;
 
 // 函数实参表
