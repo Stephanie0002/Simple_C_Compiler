@@ -36,7 +36,7 @@ using namespace llvm;
 static std::unique_ptr<LLVMContext> TheContext;
 static std::unique_ptr<Module> TheModule;
 static std::unique_ptr<IRBuilder<>> Builder;
-static std::map<std::string, AllocaInst *> NamedValues;
+static std::map<std::string, Value *> NamedValues; // address
 static std::unique_ptr<legacy::FunctionPassManager> TheFPM;
 static std::map<std::string, std::unique_ptr<PrototypeAST>> FunctionProtos;
 static ExitOnError ExitOnErr;
@@ -217,7 +217,29 @@ Value *IfExprAST::codegen() {
 }
 
 Value* VarDefAST::codegen() {
-  return nullptr;
+  for (auto &&p : VarNames) {
+    // alloc stack space
+    auto alloc =
+        Builder->CreateAlloca(Type::getInt32Ty(*TheContext), nullptr,
+                                        p.first);
+    // Record locals in the NamedValues map.
+    NamedValues[p.first] = alloc;
+    // Pass by Value
+    auto iv = p.second->codegen();
+    Builder->CreateStore(iv, alloc);
+  }
+  return nullptr; //fuckoff
+}
+
+Value *GlblVarDefAST::codegen() {
+  Constant *rv = nullptr;
+  for (auto &&p : VarNames) {
+    // todo const init
+    rv = TheModule->getOrInsertGlobal(p.first, Type::getInt32Ty(*TheContext));
+    // Record in the NamedValues map.
+    NamedValues[p.first] = rv;
+  }
+  return rv;
 }
 
 Function *PrototypeAST::codegen() {
@@ -245,18 +267,21 @@ Function *FunctionAST::codegen() {
   Function *TheFunction = getFunction(P.getName());
   if (!TheFunction)
     return nullptr;
-
+  
+  // new symtab for each scope
+  auto symtab_stash = NamedValues;
+  
   // Create a new basic block to start insertion into.
   BasicBlock *BB = BasicBlock::Create(*TheContext, "entry", TheFunction);
   Builder->SetInsertPoint(BB);
 
   // Record the function arguments in the NamedValues map.
-  NamedValues.clear();
+  //NamedValues.clear();
   for (auto &Arg : TheFunction->args()) {
     // alloc stack space
-    auto alloca = Builder->CreateAlloca(Type::getInt32Ty(*TheContext), nullptr,
+    auto alloc = Builder->CreateAlloca(Type::getInt32Ty(*TheContext), nullptr,
                                         Arg.getName());
-    NamedValues[std::string(Arg.getName())] = alloca;
+    NamedValues[std::string(Arg.getName())] = alloc;
   }
   // Pass by Value
   for (auto &Arg : TheFunction->args()) {
@@ -273,6 +298,9 @@ Function *FunctionAST::codegen() {
   // Run the optimizer on the function.
   TheFPM->run(*TheFunction);
 
+  // restore symtab
+  NamedValues = symtab_stash;
+  
   return TheFunction;
 }
 

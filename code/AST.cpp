@@ -5,24 +5,30 @@
 #include <string>
 #include <vector>
 
-// TODO IF WHILE BREAK CONT
+// TODO IF WHILE BREAK CONT 函数 数组索引 short-circuit
 
 // Translation from tailored grammarTree to AST
 
-std::unique_ptr<VarDefAST> get_Decl_AST(const grammarTree *r) {
+std::unique_ptr<VarDefAST> get_Decl_AST(const grammarTree *r, bool isGlbl) {
   auto d1 = r->left;
   if (d1->name == "VarDecl") {
     std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> varnames;
+    //! assumed int
     for (auto vd = d1->left->right; vd; vd = vd->right) {
       auto pIDENT = vd->left;
       std::string id = pIDENT->content;
       std::unique_ptr<ExprAST> iv;
-      if (pIDENT->right->name == "=") {
-        iv = std::move(get_Exp_AST(pIDENT->right->right)); //! a = 1 only
+      auto pEQ = pIDENT->right;
+      if (pEQ && pEQ->name == "=") {
+        iv = std::move(get_Exp_AST(pEQ->right)); // todo array
       }
       varnames.push_back(std::make_pair(id, std::move(iv)));
     }
-    return std::make_unique<VarDefAST>(std::move(varnames));
+    if (isGlbl) {
+      return std::make_unique<GlblVarDefAST>(std::move(varnames));
+    } else {
+      return std::make_unique<VarDefAST>(std::move(varnames));
+    }
   } else {
     assert(false);
   }
@@ -40,7 +46,6 @@ get_BinExpr_AST(const grammarTree *r,
 }
 
 std::unique_ptr<ExprAST> get_Exp_AST(const grammarTree *r) {
-  assert(r->name.rfind("Exp") == r->name.length() - 3); // ends_with "Exp"
   // postorder: proc child from left to right, before root
   std::stack<const grammarTree *> in;
   std::stack<std::unique_ptr<ExprAST>> out;
@@ -94,10 +99,6 @@ std::unique_ptr<ExprAST> get_Exp_AST(const grammarTree *r) {
   return std::move(out.top());
 }
 
-/*
-      std::variant<>, std::unique_ptr<PrototypeAST>,
-                   std::unique_ptr<FunctionAST> */
-
 std::unique_ptr<FunctionAST> get_FuncDef_AST(const grammarTree *r) {
   assert(r->name == "FuncDef");
   // proto
@@ -118,7 +119,7 @@ std::unique_ptr<FunctionAST> get_FuncDef_AST(const grammarTree *r) {
     if (item->name == "Stmt") {
       auto s1 = item->left;
       if (s1->name == "LVal") {
-        body.push_back(std::make_unique<VarAssignAST>(s1->left->name,
+        body.push_back(std::make_unique<VarAssignAST>(s1->left->content,
                                                       get_Exp_AST(s1->right)));
       }
       // ends_with "Exp"
@@ -135,4 +136,21 @@ std::unique_ptr<FunctionAST> get_FuncDef_AST(const grammarTree *r) {
     }
   }
   return std::make_unique<FunctionAST>(std::move(proto), std::move(body));
+}
+
+std::vector<
+    std::variant<std::unique_ptr<FunctionAST>, std::unique_ptr<ExprAST>>>
+proc_CompUnit(const grammarTree *r) {
+  std::vector<
+      std::variant<std::unique_ptr<FunctionAST>, std::unique_ptr<ExprAST>>>
+      q;
+  for (auto c = r->left; c; c = c->right) {
+    if (c->name == "Decl") {
+      q.push_back(get_Decl_AST(c, true));
+    } else {
+      assert(c->name == "FuncDef");
+      q.push_back(get_FuncDef_AST(c));
+    }
+  }
+  return q;
 }

@@ -309,7 +309,7 @@ int main(int argc, char* argv[]) {
 
         fclose(yyin);
         printf("\n");
-        /* IR_entry(root); */
+        IR_entry(root);
         delete root;
     }
     return 0;

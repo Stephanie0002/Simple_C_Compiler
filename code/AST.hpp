@@ -3,15 +3,17 @@
 
 #include "grammarTree.h"
 #include "llvm/IR/Value.h"
-#include <cassert>
 #include <memory>
 #include <stack>
 #include <string>
+#include <variant>
 #include <vector>
 
 using namespace llvm;
 
-/// ExprAST - Base class for all expression nodes.
+/* ExprAST - Base class for all expression nodes.
+ * What is an expression? An expression can be evaluated, i.e. it has a value.
+ */
 class ExprAST {
 public:
   virtual ~ExprAST() = default;
@@ -52,6 +54,7 @@ public:
   Value *codegen() override;
 };
 
+//todo Logic Op
 /// BinaryExprAST - Expression class for a binary operator.
 class BinaryExprAST : public ExprAST {
   std::string Op;
@@ -65,7 +68,9 @@ public:
   Value *codegen() override;
 };
 
-/// VarAssignAST - Expression class for "a = 1"
+/* VarAssignAST - Expression class for "a = 1"
+ * "a = b = 1" is not allowed, but we leave it here.
+ */
 class VarAssignAST : public ExprAST {
   std::string VarName;
   std::unique_ptr<ExprAST> RHS;
@@ -112,15 +117,30 @@ public:
   Value *codegen() override;
 };
 
-/// VarDefAST - Expression class for "int a = 1"
+/* VarDefAST - Expression class for "int a = 1"
+ * The value is not usable, but we leave it here.
+ */
 class VarDefAST : public ExprAST {
+protected:
+  bool isConst;
   std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> VarNames;
 
 public:
   VarDefAST(
-      std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> VarNames)
-      : VarNames(std::move(VarNames)) {}
+      std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> VarNames,
+      bool isConst = false)
+      : VarNames(std::move(VarNames)), isConst(isConst) {}
 
+  Value *codegen() override;
+};
+
+/// Global Variable needs different codegen
+class GlblVarDefAST : public VarDefAST {
+public:
+  GlblVarDefAST(
+      std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> VarNames,
+      bool isConst = false)
+      : VarDefAST(std::move(VarNames), isConst) {}
   Value *codegen() override;
 };
 
@@ -152,8 +172,12 @@ public:
   Function *codegen();
 };
 
+std::vector<
+    std::variant<std::unique_ptr<FunctionAST>, std::unique_ptr<ExprAST>>>
+proc_CompUnit(const grammarTree *r);
 std::unique_ptr<FunctionAST> get_FuncDef_AST(const grammarTree *r);
-std::unique_ptr<VarDefAST> get_Decl_AST(const grammarTree *r);
+std::unique_ptr<VarDefAST> get_Decl_AST(const grammarTree *r,
+                                        bool isGlbl = false);
 std::unique_ptr<ExprAST> get_Exp_AST(const grammarTree *r);
 std::unique_ptr<BinaryExprAST>
 get_BinExpr_AST(const grammarTree *r,

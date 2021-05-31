@@ -1,5 +1,11 @@
 target: LLVM IR
 
+# Test log
+
+- Glbl VarDecl + FuncDef
+- arithmetic BinExpr
+- return
+
 # 资源
 
 ## 教程
