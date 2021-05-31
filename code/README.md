@@ -41,3 +41,14 @@ Windows下：参考链接https://www.jianshu.com/p/8ede808e6f92
 `注2`：必须安装提供llvm
 
 linux下：sudo apt install cmake llvm
+
+windows下：参见https://www.cnblogs.com/melodicule/p/12670137.html （傻瓜式安装，和网上其他方法比方便很多）
+
+llvm执行命令：
+
+```bash
+clang -c -emit-llvm test.c -o test.bc # 把c语言代码翻译为llvm字节码  我们应该用llvm-as test1.ll test1.bc把我们的中间代码翻译为字节码
+clang -S -fobjc-arc test.bc -o test.s # 把字节码翻译为汇编代码
+clang test.s -o test.exe # 把汇编代码翻译为可执行文件
+```
+
