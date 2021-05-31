@@ -42,7 +42,9 @@ Windows下：参考链接https://www.jianshu.com/p/8ede808e6f92
 
 linux下：sudo apt install cmake llvm
 
-windows下：参见https://www.cnblogs.com/melodicule/p/12670137.html （傻瓜式安装，和网上其他方法比方便很多）
+windows下：进入https://github.com/llvm/llvm-project/releases/tag/llvmorg-12.0.0 下载LLVM-12.0.0-win64.exe和Source code(zip)
+
+   exe是win下傻瓜式安装软件，点开一直下一步就好，Source code(zip)解压后.\llvm-project-llvmorg-12.0.0\llvm\include\内有我们代码要引用的头文件
 
 llvm执行命令：
 
