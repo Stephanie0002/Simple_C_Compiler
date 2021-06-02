@@ -69,6 +69,17 @@ Function *getFunction(std::string Name) {
 
 // Methods
 
+Value *BlockAST::codegen() {
+  // new symtab for each scope
+  auto symtab_stash = NamedValues;
+  for (auto &&pAST : items) {
+    pAST->codegen();
+  }
+  // restore symtab
+  NamedValues = symtab_stash;
+  return nullptr;
+}
+
 Value *NumberExprAST::codegen() {
   return ConstantInt::get(*TheContext, APInt(32, Val, true));
 }
@@ -165,55 +176,46 @@ Value *CallExprAST::codegen() {
 }
 
 Value *IfExprAST::codegen() {
+  // TODO CFG simplification is welcome
   Value *CondV = Cond->codegen();
   if (!CondV)
     return nullptr;
 
-  // Convert condition to a bool by comparing non-equal to 0.0.
-  CondV = Builder->CreateFCmpONE(
-      CondV, ConstantFP::get(*TheContext, APFloat(0.0)), "ifcond");
-
+  // Convert condition to a bool by comparing non-equal to 0.
+  CondV = Builder->CreateICmpNE(
+      CondV, ConstantInt::get(*TheContext, APInt(32, 0, true)), "ifcond");
+  // get current function
   Function *TheFunction = Builder->GetInsertBlock()->getParent();
 
-  // Create blocks for the then and else cases.  Insert the 'then' block at the
-  // end of the function.
+  // Create basic blocks for if-[then]-[else]- control flow.
+  // Only 'then' block is appended, 
+  // since Codegen of 'then' block might create new blocks after it.
   BasicBlock *ThenBB = BasicBlock::Create(*TheContext, "then", TheFunction);
   BasicBlock *ElseBB = BasicBlock::Create(*TheContext, "else");
   BasicBlock *MergeBB = BasicBlock::Create(*TheContext, "ifcont");
 
   Builder->CreateCondBr(CondV, ThenBB, ElseBB);
 
-  // Emit then value.
+  // Fill 'then' block
   Builder->SetInsertPoint(ThenBB);
-
-  Value *ThenV = Then->codegen();
-  if (!ThenV)
-    return nullptr;
-
+  if (Then) {
+    Then->codegen();
+  }
   Builder->CreateBr(MergeBB);
-  // Codegen of 'Then' can change the current block, update ThenBB for the PHI.
-  ThenBB = Builder->GetInsertBlock();
 
-  // Emit else block.
-  TheFunction->getBasicBlockList().push_back(ElseBB);
+  // Finish 'else' block
+  ElseBB->insertInto(TheFunction);
   Builder->SetInsertPoint(ElseBB);
-
-  Value *ElseV = Else->codegen();
-  if (!ElseV)
-    return nullptr;
-
+  if (Else) {
+    Else->codegen();
+  }
   Builder->CreateBr(MergeBB);
-  // Codegen of 'Else' can change the current block, update ElseBB for the PHI.
-  ElseBB = Builder->GetInsertBlock();
 
-  // Emit merge block.
-  TheFunction->getBasicBlockList().push_back(MergeBB);
+  // Finish merge block.
+  MergeBB->insertInto(TheFunction);
   Builder->SetInsertPoint(MergeBB);
-  PHINode *PN = Builder->CreatePHI(Type::getInt32Ty(*TheContext), 2, "iftmp");
 
-  PN->addIncoming(ThenV, ThenBB);
-  PN->addIncoming(ElseV, ElseBB);
-  return PN;
+  return nullptr;
 }
 
 Value* VarDefAST::codegen() {
@@ -224,9 +226,11 @@ Value* VarDefAST::codegen() {
                                         p.first);
     // Record locals in the NamedValues map.
     NamedValues[p.first] = alloc;
-    // Pass by Value
-    auto iv = p.second->codegen();
-    Builder->CreateStore(iv, alloc);
+    // InitVal
+    if (p.second) {
+      auto iv = p.second->codegen();
+      Builder->CreateStore(iv, alloc);
+    }
   }
   return nullptr; //fuckoff
 }
@@ -276,7 +280,6 @@ Function *FunctionAST::codegen() {
   Builder->SetInsertPoint(BB);
 
   // Record the function arguments in the NamedValues map.
-  //NamedValues.clear();
   for (auto &Arg : TheFunction->args()) {
     // alloc stack space
     auto alloc = Builder->CreateAlloca(Type::getInt32Ty(*TheContext), nullptr,
@@ -288,12 +291,28 @@ Function *FunctionAST::codegen() {
     Builder->CreateStore(&Arg, NamedValues[std::string(Arg.getName())]);
   }
 
-  for (auto &&pEAST : Body) {
-    pEAST->codegen();
+  Body->codegen();
+
+  //TODO FPM?
+  // BB not necessarily well-formed due to macro-expansion-like codegen
+  for (BasicBlock &BB : *TheFunction) {
+    // append default terminator
+    if (!BB.getTerminator()) {
+      Builder->SetInsertPoint(&BB);
+      Builder->CreateRet(ConstantInt::get(*TheContext, APInt(32, 1, true)));
+    } 
+    // eliminate instructions after first terminator
+    else {
+      auto it = BB.begin();
+      for (; !it->isTerminator(); ++it)
+        ;
+      for (++it; it != BB.end(); it = it->eraseFromParent())
+        ;
+    }
   }
 
   // Validate the generated code, checking for consistency.
-  verifyFunction(*TheFunction);
+  verifyFunction(*TheFunction, &llvm::errs());
 
   // Run the optimizer on the function.
   TheFPM->run(*TheFunction);

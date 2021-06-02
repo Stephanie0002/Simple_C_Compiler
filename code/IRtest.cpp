@@ -39,13 +39,13 @@ static void InitializeContext() {
 
   // Promote allocas to registers.
   TheFPM->add(createPromoteMemoryToRegisterPass());
-  //// Do simple "peephole" optimizations and bit-twiddling optzns.
+  // Do simple "peephole" optimizations and bit-twiddling optzns.
   //TheFPM->add(createInstructionCombiningPass());
-  //// Reassociate expressions.
+  // Reassociate expressions.
   //TheFPM->add(createReassociatePass());
-  //// Eliminate Common SubExpressions.
+  // Eliminate Common SubExpressions.
   //TheFPM->add(createGVNPass());
-  //// Simplify the control flow graph (deleting unreachable blocks, etc).
+  // Simplify the control flow graph (deleting unreachable blocks, etc).
   //TheFPM->add(createCFGSimplificationPass());
 
   TheFPM->doInitialization();

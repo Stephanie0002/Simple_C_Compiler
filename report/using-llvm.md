@@ -3,6 +3,8 @@ target: LLVM IR
 # Test log
 
 - Glbl VarDecl + FuncDef
+  - ？全局变量初始化为0
+- Func call
 - arithmetic BinExpr
 - return
 

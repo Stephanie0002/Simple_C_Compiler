@@ -5,9 +5,11 @@
 #include <string>
 #include <vector>
 
-// TODO IF WHILE BREAK CONT 函数 数组索引 short-circuit
+// TODO 数组索引 short-circuit
+//* Constant
 
 // Translation from tailored grammarTree to AST
+// basically recursive descent
 
 std::unique_ptr<VarDefAST> get_Decl_AST(const grammarTree *r, bool isGlbl) {
   auto d1 = r->left;
@@ -111,31 +113,8 @@ std::unique_ptr<FunctionAST> get_FuncDef_AST(const grammarTree *r) {
   for (auto fparam = c->left; fparam; fparam = fparam->right) {
     args.push_back(fparam->left->right->content);
   }
-  auto proto = std::make_unique<PrototypeAST>(name, args);
-  // body
-  std::vector<std::unique_ptr<ExprAST>> body;
-  c = c->right; // Block
-  for (auto item = c->left; item; item = item->right) {
-    if (item->name == "Stmt") {
-      auto s1 = item->left;
-      if (s1->name == "LVal") {
-        body.push_back(std::make_unique<VarAssignAST>(s1->left->content,
-                                                      get_Exp_AST(s1->right)));
-      }
-      // ends_with "Exp"
-      else if (s1->name.rfind("Exp") == s1->name.length() - 3) {
-        body.push_back(get_Exp_AST(s1));
-      } else if (s1->name == "RETURN") {
-        body.push_back(std::make_unique<ReturnExprAST>(get_Exp_AST(s1->right)));
-      } else {
-        assert(false);
-      }
-    } else {
-      assert(item->name == "Decl");
-      body.push_back(get_Decl_AST(item));
-    }
-  }
-  return std::make_unique<FunctionAST>(std::move(proto), std::move(body));
+  return std::make_unique<FunctionAST>(
+      std::make_unique<PrototypeAST>(name, args), get_Block_AST(c->right));
 }
 
 std::vector<
@@ -153,4 +132,54 @@ proc_CompUnit(const grammarTree *r) {
     }
   }
   return q;
+}
+
+std::unique_ptr<ExprAST> get_Stmt_AST(const grammarTree *item) {
+  auto s1 = item->left;
+  if (s1->name == "LVal") {
+    return std::make_unique<VarAssignAST>(s1->left->content,
+                                          get_Exp_AST(s1->right->right));
+  } else if (s1->name.rfind("Exp") != std::string::npos) {
+    // contains "Exp"; ends_with will be more accurate but sufferred from OF
+    return get_Exp_AST(s1);
+  } else if (s1->name == "Block") {
+    return get_Block_AST(s1);
+  } else if (s1->name == "IF") {
+    //! Stmt is nullable
+    std::unique_ptr<ExprAST> Then, Else;
+    auto pCOND = s1->right, p = pCOND->right;
+    if (p->name == "Stmt") {
+      Then = get_Stmt_AST(p);
+      p = p->right;
+    } 
+    if (p && p->name == "ELSE") {
+      p = p->right;
+      if (p && p->name == "Stmt") {
+        Else = get_Stmt_AST(p);
+      }
+    }
+    return std::make_unique<IfExprAST>(get_Exp_AST(pCOND->left),
+                                       std::move(Then), std::move(Else));
+  }
+  // TODO WHILE BREAK CONT
+  else if (s1->name == "RETURN") {
+    return std::make_unique<ReturnExprAST>(get_Exp_AST(s1->right));
+  } else {
+    assert(false);
+  }
+}
+
+std::unique_ptr<BlockAST> get_Block_AST(const grammarTree *r) {
+  // body
+  std::vector<std::unique_ptr<ExprAST>> body;
+  for (auto item = r->left; item; item = item->right) {
+    if (item->name == "Stmt") {
+      body.push_back(get_Stmt_AST(item));
+    } else if (item->name == "Decl") {
+      body.push_back(get_Decl_AST(item));
+    } else {
+      assert(false);
+    }
+  }
+  return std::make_unique<BlockAST>(std::move(body));
 }

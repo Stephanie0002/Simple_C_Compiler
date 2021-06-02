@@ -11,7 +11,7 @@
 
 using namespace llvm;
 
-/* ExprAST - Base class for all expression nodes.
+/* ExprAST - Base class for all ? nodes.
  * What is an expression? An expression can be evaluated, i.e. it has a value.
  */
 class ExprAST {
@@ -19,6 +19,17 @@ public:
   virtual ~ExprAST() = default;
 
   virtual Value *codegen() = 0;
+};
+
+/// BlockAST - contains a series of ExprAST; marks a new scope.
+class BlockAST : public ExprAST {
+  std::vector<std::unique_ptr<ExprAST>> items;
+
+public:
+  BlockAST(std::vector<std::unique_ptr<ExprAST>> items)
+      : items(std::move(items)) {}
+
+  Value *codegen() override;
 };
 
 /// NumberExprAST - Expression class for numeric literals like "1".
@@ -162,11 +173,11 @@ public:
 /// FunctionAST - This class represents a function definition itself.
 class FunctionAST {
   std::unique_ptr<PrototypeAST> Proto;
-  std::vector<std::unique_ptr<ExprAST>> Body;
+  std::unique_ptr<BlockAST> Body;
 
 public:
   FunctionAST(std::unique_ptr<PrototypeAST> Proto,
-              std::vector<std::unique_ptr<ExprAST>> Body)
+              std::unique_ptr<BlockAST> Body)
       : Proto(std::move(Proto)), Body(std::move(Body)) {}
 
   Function *codegen();
@@ -178,6 +189,8 @@ proc_CompUnit(const grammarTree *r);
 std::unique_ptr<FunctionAST> get_FuncDef_AST(const grammarTree *r);
 std::unique_ptr<VarDefAST> get_Decl_AST(const grammarTree *r,
                                         bool isGlbl = false);
+std::unique_ptr<ExprAST> get_Stmt_AST(const grammarTree *r);
+std::unique_ptr<BlockAST> get_Block_AST(const grammarTree *r);
 std::unique_ptr<ExprAST> get_Exp_AST(const grammarTree *r);
 std::unique_ptr<BinaryExprAST>
 get_BinExpr_AST(const grammarTree *r,
