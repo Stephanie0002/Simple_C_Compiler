@@ -1,7 +1,7 @@
 #include "Parser.h"
 
 // Global variables
-bool debug = true;
+bool debug = false;
 myHashSet symbol_table;
 
 bool checkProduction(const syntaxTree *parent, int node_num, ...)

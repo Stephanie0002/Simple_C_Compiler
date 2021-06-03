@@ -28,8 +28,9 @@ INT			{Dec}|{Oct}|{Hex}
 UNDESIGNED	"for"|"switch"|"case"|"char"|"double"|"float"|"bool"|"void"|"struct"
 WrongOct	0[0-9]+
 WrongHex	0[xX]{WrongH}+
+WrongInt	[0]+{INT}
 FLOAT		{D}"."{D}+
-SCIEN		({FLOAT}|{INT})[eE]*[+-]*[0]*({FLOAT}|{INT})
+SCIEN		({FLOAT}|{WrongInt})[eE][+-]*[0]*({FLOAT}|{WrongInt})
 
 %%
 "/*"			{ count(); formerComment(); }
@@ -39,6 +40,7 @@ SCIEN		({FLOAT}|{INT})[eE]*[+-]*[0]*({FLOAT}|{INT})
 {UNDESIGNED} 	{ count(); if (isNewError(yylineno)) fprintf(stderr, "Error [Lexical] at Line %d, Col %d: Undifined reserved word \'%s\'.\n", yylineno, yycolumn, yytext); return(UNDESIGNED);}
 {FLOAT}			{ count(); if (isNewError(yylineno)) fprintf(stderr, "Error [Lexical] at Line %d, Col %d: Wrong number format \'%s\'.\n", yylineno, yycolumn, yytext); return(WrongNumberFormat);}
 {SCIEN}			{ count(); if (isNewError(yylineno)) fprintf(stderr, "Error [Lexical] at Line %d, Col %d: Wrong number format \'%s\'.\n", yylineno, yycolumn, yytext); return(WrongNumberFormat);}
+{WrongInt}		{ count(); if (isNewError(yylineno)) fprintf(stderr, "Error [Lexical] at Line %d, Col %d: Confusing number format \'%s\'?\n", yylineno, yycolumn, yytext); return(WrongNumberFormat);}
 {WrongOct}		{ count(); if (isNewError(yylineno)) fprintf(stderr, "Error [Lexical] at Line %d, Col %d: Illegal octal number \'%s\'.\n", yylineno, yycolumn, yytext); return(WrongNumberFormat);}
 {WrongHex}		{ count(); if (isNewError(yylineno)) fprintf(stderr, "Error [Lexical] at Line %d, Col %d: Illegal hex number \'%s\'.\n", yylineno, yycolumn, yytext); return(WrongNumberFormat);}
 

@@ -149,7 +149,7 @@ void nodePrint(syntaxTree *root, string filename, bool verbose)
         syntaxTree *tmp = root;
         floorTraverse(tmp);
     }
-    verbose = true;
+    // verbose = true;
     if (verbose)
     {
         printf("\n");

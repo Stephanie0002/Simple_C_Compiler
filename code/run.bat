@@ -6,6 +6,6 @@ set ERROR_FILE_CC=../test/error_test/~.c ../test/error_test/a[2][2].c ../test/er
 flex cc.l
 bison -vdty cc.y
 g++ -std=c++11 -o cc main.cpp syntaxTree.cpp Parser.cpp Symbol.cpp hashSet.cpp utils.cpp lex.yy.c y.tab.c
-@REM cc false %TEST_FILE_CC%
-cc false %ERROR_FILE_CC%
+cc false %TEST_FILE_CC%
+@REM cc false %ERROR_FILE_CC%
 @REM cc false ./functional_test/00_main.c
