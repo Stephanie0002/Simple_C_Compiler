@@ -9,5 +9,6 @@ using namespace std;
 
 string int2str(int n);
 int str2int(string str);
+char *charUp(char *str);
 
 #endif

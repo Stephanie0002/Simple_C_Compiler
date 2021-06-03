@@ -11,6 +11,7 @@ extern int yyparse(void);
 extern void yyrestart(FILE *input_file);
 
 extern int error_num;
+extern int last_error_lineno;
 extern struct syntaxTree *root;
 
 int main(int argc, char **argv)
@@ -50,10 +51,8 @@ int main(int argc, char **argv)
             return 1;
         }
 
-        if (verbose == true)
-        {
-            printf("\n---Begin to compile file %s---\n", filename.c_str());
-        }
+        printf("\n---Compile file %s:---\n", filename.c_str());
+
         yyrestart(file);
         yyparse();
 
@@ -63,10 +62,21 @@ int main(int argc, char **argv)
             syntaxTree *semantic = root;
             nodePrint(syntax, filename, verbose);
             semanticAnalysis(semantic);
+
             delete root;
             destroySymbolTable();
         }
+        else
+        {
+            if (error_num != 1)
+                fprintf(stderr, "%d errors occured when compiling.\n", error_num);
+            else
+                fprintf(stderr, "1 error occured when compiling.\n");
+            error_num = 0;
+            last_error_lineno = 0;
+        }
 
+        yylineno = 1;
         fclose(file);
     }
     return 0;

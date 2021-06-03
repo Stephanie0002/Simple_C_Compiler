@@ -893,14 +893,10 @@ void analyseLVal(const syntaxTree *node, mySymbol *symb)
     }
     if (checkProduction(node, 1, "IDENT"))
     {
-        //
     }
     else if (checkProduction(node, 4, "IDENT", "[", "Exp", "]"))
     {
-        //
-        //
         analyseExp(node->left->right->right, symb);
-        //
     }
     else
     {
@@ -921,9 +917,7 @@ void analysePrimaryExp(const syntaxTree *node, mySymbol *symb)
     }
     if (checkProduction(node, 3, "(", "Exp", ")"))
     {
-        //
         analyseExp(node->left->right, symb);
-        //
     }
     else if (checkProduction(node, 1, "LVal"))
     {
@@ -986,16 +980,10 @@ void analyseUnaryExp(const syntaxTree *node, mySymbol *symb)
     }
     else if (checkProduction(node, 3, "IDENT", "(", ")"))
     {
-        //
-        //
-        //
     }
     else if (checkProduction(node, 4, "IDENT", "(", "FuncRParams", ")"))
     {
-        //
-        //
         analyseFuncRParams(node->left->right->right, symb);
-        //
     }
     else if (checkProduction(node, 2, "UnaryOp", "UnaryExp"))
     {
@@ -1021,15 +1009,12 @@ void analyseUnaryOp(const syntaxTree *node, mySymbol *symb)
     }
     if (checkProduction(node, 1, "+"))
     {
-        //
     }
     else if (checkProduction(node, 1, "-"))
     {
-        //
     }
     else if (checkProduction(node, 1, "!"))
     {
-        //
     }
     else
     {
@@ -1079,13 +1064,11 @@ void analyseAddExp(const syntaxTree *node, mySymbol *symb)
     else if (checkProduction(node, 3, "AddExp", "+", "MulExp"))
     {
         analyseAddExp(node->left, symb);
-        //
         analyseMulExp(node->left->right->right, symb);
     }
     else if (checkProduction(node, 3, "AddExp", "-", "MulExp"))
     {
         analyseAddExp(node->left, symb);
-        //
         analyseMulExp(node->left->right->right, symb);
     }
     else
@@ -1112,19 +1095,16 @@ void analyseMulExp(const syntaxTree *node, mySymbol *symb)
     else if (checkProduction(node, 3, "MulExp", "*", "UnaryExp"))
     {
         analyseMulExp(node->left, symb);
-        //
         analyseUnaryExp(node->left->right->right, symb);
     }
     else if (checkProduction(node, 3, "MulExp", "/", "UnaryExp"))
     {
         analyseMulExp(node->left, symb);
-        //
         analyseUnaryExp(node->left->right->right, symb);
     }
     else if (checkProduction(node, 3, "MulExp", "%", "UnaryExp"))
     {
         analyseMulExp(node->left, symb);
-        //
         analyseUnaryExp(node->left->right->right, symb);
     }
     else
@@ -1151,25 +1131,21 @@ void analyseRelExp(const syntaxTree *node, mySymbol *symb)
     else if (checkProduction(node, 3, "RelExp", "<", "AddExp"))
     {
         analyseRelExp(node->left, symb);
-        //symb
         analyseAddExp(node->left->right->right, symb);
     }
     else if (checkProduction(node, 3, "RelExp", ">", "AddExp"))
     {
         analyseRelExp(node->left, symb);
-        //
         analyseAddExp(node->left->right->right, symb);
     }
     else if (checkProduction(node, 3, "RelExp", "LE_OP", "AddExp"))
     {
         analyseRelExp(node->left, symb);
-        //
         analyseAddExp(node->left->right->right, symb);
     }
     else if (checkProduction(node, 3, "RelExp", "GE_OP", "AddExp"))
     {
         analyseRelExp(node->left, symb);
-        //
         analyseAddExp(node->left->right->right, symb);
     }
     else
@@ -1196,13 +1172,11 @@ void analyseEqExp(const syntaxTree *node, mySymbol *symb)
     else if (checkProduction(node, 3, "EqExp", "EQ_OP", "RelExp"))
     {
         analyseEqExp(node->left, symb);
-        //
         analyseRelExp(node->left->right->right, symb);
     }
     else if (checkProduction(node, 3, "EqExp", "NE_OP", "RelExp"))
     {
         analyseEqExp(node->left, symb);
-        //
         analyseRelExp(node->left->right->right, symb);
     }
     else
@@ -1229,7 +1203,6 @@ void analyseLAndExp(const syntaxTree *node, mySymbol *symb)
     else if (checkProduction(node, 3, "LAndExp", "AND_OP", "EqExp"))
     {
         analyseLAndExp(node->left, symb);
-        //
         analyseEqExp(node->left->right->right, symb);
     }
     else
@@ -1256,7 +1229,6 @@ void analyseLOrExp(const syntaxTree *node, mySymbol *symb)
     else if (checkProduction(node, 3, "LOrExp", "OR_OP", "LAndExp"))
     {
         analyseLOrExp(node->left, symb);
-        //
         analyseLAndExp(node->left->right->right, symb);
     }
     else

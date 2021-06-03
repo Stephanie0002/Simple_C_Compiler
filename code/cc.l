@@ -20,18 +20,27 @@ extern int isNewError(int error_lineno);
 D			[0-9]
 L			[a-zA-Z_]
 H			[a-fA-F0-9]
-Dec			[1-9]{D}*
-Oct 		0[0-7]*
+WrongH		[a-zA-Z0-9]
+Dec			0|([1-9]{D}*)
+Oct 		0[0-7]+
 Hex			0[xX]{H}+
 INT			{Dec}|{Oct}|{Hex}
 UNDESIGNED	"for"|"switch"|"case"|"char"|"double"|"float"|"bool"|"void"|"struct"
+WrongOct	0[0-9]+
+WrongHex	0[xX]{WrongH}+
+FLOAT		{D}"."{D}+
+SCIEN		({FLOAT}|{INT})[eE]*[+-]*[0]*({FLOAT}|{INT})
 
 %%
 "/*"			{ count(); formerComment(); }
 "*/"			{ count(); latterComment(); }
 "//"[^\n]*      {  }
 
-{UNDESIGNED} 	{if (isNewError(yylineno)) fprintf(stderr, "Error [Lexical] at Line %d, Col %d: Undifined reserved word \'%s\'.\n", yylineno, yycolumn, yytext); }
+{UNDESIGNED} 	{ count(); if (isNewError(yylineno)) fprintf(stderr, "Error [Lexical] at Line %d, Col %d: Undifined reserved word \'%s\'.\n", yylineno, yycolumn, yytext); return(UNDESIGNED);}
+{FLOAT}			{ count(); if (isNewError(yylineno)) fprintf(stderr, "Error [Lexical] at Line %d, Col %d: Wrong number format \'%s\'.\n", yylineno, yycolumn, yytext); return(WrongNumberFormat);}
+{SCIEN}			{ count(); if (isNewError(yylineno)) fprintf(stderr, "Error [Lexical] at Line %d, Col %d: Wrong number format \'%s\'.\n", yylineno, yycolumn, yytext); return(WrongNumberFormat);}
+{WrongOct}		{ count(); if (isNewError(yylineno)) fprintf(stderr, "Error [Lexical] at Line %d, Col %d: Illegal octal number \'%s\'.\n", yylineno, yycolumn, yytext); return(WrongNumberFormat);}
+{WrongHex}		{ count(); if (isNewError(yylineno)) fprintf(stderr, "Error [Lexical] at Line %d, Col %d: Illegal hex number \'%s\'.\n", yylineno, yycolumn, yytext); return(WrongNumberFormat);}
 
 "const"			{ count(); yylval.node = createSyntaxTree("CONST", 0, yylineno); 	return(CONST); }
 "int"			{ count(); yylval.node = createSyntaxTree("INT", 0, yylineno); 		return(INT); }
@@ -77,7 +86,7 @@ UNDESIGNED	"for"|"switch"|"case"|"char"|"double"|"float"|"bool"|"void"|"struct"
 
 [\v\n\f ]     { count(); }
 [ \t\r]			{}
-. 				{ if (isNewError(yylineno)) fprintf(stderr, "Error [Lexical] at line %d, Col %d: Mysterious character \'%s\'\n", yylineno, yycolumn, yytext); }
+. 				{ if (isNewError(yylineno)) fprintf(stderr, "Error [Lexical] at line %d, Col %d: Mysterious character \'%s\'.\n", yylineno, yycolumn, yytext); }
 
 %%
 

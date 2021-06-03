@@ -22,8 +22,8 @@ int isNewError(int error_lineno);
     struct syntaxTree* node;
 }
 
-%token <node> NUMBER CONST IDENT
-%token <node> INT
+%token <node> NUMBER CONST IDENT WrongNumberFormat
+%token <node> INT UNDESIGNED
 %token <node> IF ELSE WHILE BREAK CONTINUE RETURN
 %token <node> '+' '-' '*' '/' '%' '<' '>' '!' '='
 %token <node> LE_OP GE_OP EQ_OP NE_OP AND_OP OR_OP 
@@ -78,6 +78,7 @@ ConstDef_list:
 // 基本类型
 BType:
         INT{$$ = createSyntaxTree("BType", 1, $1);}
+    |   UNDESIGNED{}
     ;
 
 // 常数定义
@@ -115,6 +116,7 @@ VarDef:
     |   IDENT '[' ConstExp ']'{$$ = createSyntaxTree("VarDef", 4, $1, $2, $3, $4);}
     |   IDENT '=' InitVal{$$ = createSyntaxTree("VarDef", 3, $1, $2, $3);}
     |   IDENT '[' ConstExp ']' '=' InitVal{$$ = createSyntaxTree("VarDef", 6, $1, $2, $3, $4, $5, $6);}
+    |   IDENT '[' ConstExp ']' error {if (isNewError(yylineno)) fprintf(stderr, "Error [Syntax] at Line %d, Col %d: Syntax error \'%s\' when define an array.\n", yylineno, yycolumn, yytext);}
     ;
 
 // 变量初值
@@ -131,7 +133,6 @@ Exp_list:
 
 // 函数定义
 FuncDef:
-        // BType IDENT '(' ')' Block{$$ = createSyntaxTree("FuncDef", 5, $1, $2, $3, $4, $5);}
         BType IDENT '(' FuncFParams ')' Block{$$ = createSyntaxTree("FuncDef", 6, $1, $2, $3, $4, $5, $6);}
     ;
 
@@ -180,6 +181,7 @@ Stmt:
     |   BREAK ';'{$$ = createSyntaxTree("Stmt", 2, $1, $2);}
     |   CONTINUE ';'{$$ = createSyntaxTree("Stmt", 2, $1, $2);}
     |   RETURN Exp ';'{$$ = createSyntaxTree("Stmt", 3, $1, $2, $3);}
+    |   LVal '=' Exp error{if (isNewError(yylineno)) fprintf(stderr, "Error [Syntax] at Line %d, Col %d: Missing \';\'.\n", yylineno, yycolumn);}
     ;
 
 // 表达式
@@ -203,6 +205,8 @@ PrimaryExp:
         '(' Exp ')'{$$ = createSyntaxTree("PrimaryExp", 3, $1, $2, $3);}
     |   LVal{$$ = createSyntaxTree("PrimaryExp", 1, $1);}
     |   NUMBER{$$ = createSyntaxTree("PrimaryExp", 1, $1);}
+    |   WrongNumberFormat{}
+    
     ;
 
 // 一元表达式
@@ -276,9 +280,9 @@ ConstExp:
 
 void yyerror(char const *s)
 {
-    if (isNewError){
-        fprintf(stderr, "Error [Syntax] at Line %d, Col %d: %s.\n", yylineno, yycolumn, s);
-    }
+    // if (isNewError(yylineno)){
+    //     fprintf(stderr, "Error [Syntax] at Line %d, Col %d: %s.\n", yylineno, yycolumn, s);
+    // }
 }
 
 int isNewError(int error_lineno){
