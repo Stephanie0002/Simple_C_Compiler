@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-// TODO 数组索引 short-circuit
+// TODO 数组索引
 //* Constant
 
 // Translation from tailored grammarTree to AST

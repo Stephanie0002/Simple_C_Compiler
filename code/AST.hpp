@@ -34,7 +34,7 @@ public:
 
 /// NumberExprAST - Expression class for numeric literals like "1".
 class NumberExprAST : public ExprAST {
-  int Val;
+  int Val; // positive according to spec
 
 public:
   NumberExprAST(int Val) : Val(Val) {}
@@ -65,7 +65,6 @@ public:
   Value *codegen() override;
 };
 
-//todo Logic Op
 /// BinaryExprAST - Expression class for a binary operator.
 class BinaryExprAST : public ExprAST {
   std::string Op;

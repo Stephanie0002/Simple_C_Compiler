@@ -82,7 +82,7 @@ Value *BlockAST::codegen() {
 }
 
 Value *NumberExprAST::codegen() {
-  return ConstantInt::get(*TheContext, APInt(32, Val, true));
+  return Builder->getInt32(Val);
 }
 
 Value *VariableExprAST::codegen() {
@@ -90,7 +90,7 @@ Value *VariableExprAST::codegen() {
   Value *V = NamedValues[Name];
   if (!V)
     return LogErrorV("Unknown variable name");
-  return Builder->CreateLoad(Type::getInt32Ty(*TheContext), V, Name);
+  return Builder->CreateLoad(Builder->getInt32Ty(), V, Name);
 }
 
 Value *UnaryExprAST::codegen() {
@@ -102,40 +102,72 @@ Value *UnaryExprAST::codegen() {
     return Builder->CreateNeg(OperandV);
   } else if (Opcode == '!') {
     return Builder->CreateNot(OperandV);
+  } else if (Opcode == '+') {
+    return OperandV;  
+  } else {
+    assert(false);
   }
 }
 
 Value *BinaryExprAST::codegen() {
-  Value *L = LHS->codegen();
-  Value *R = RHS->codegen();
-  if (!L || !R)
-    return nullptr;
-
-  if (Op == "+") {
-    return Builder->CreateAdd(L, R, "addtmp");
-  } else if (Op == "-") {
-    return Builder->CreateSub(L, R, "subtmp");
-  } else if (Op == "*") {
-    return Builder->CreateMul(L, R, "multmp");
-  } else if (Op == "/") {
-    return Builder->CreateSDiv(L, R, "divtmp");
-  } else if (Op == "%") {
-    return Builder->CreateSRem(L, R, "divtmp");
+  Value *L = LHS->codegen(), *R; // codegen of RHS postponed due to Logic Op
+  // mapping
+  std::unordered_map<std::string, Instruction::BinaryOps> sarith2op = {
+      {"+", Instruction::BinaryOps::Add},  {"-", Instruction::BinaryOps::Sub},
+      {"*", Instruction::BinaryOps::Mul},  {"/", Instruction::BinaryOps::SDiv},
+      {"%", Instruction::BinaryOps::SRem},
+  };
+  std::unordered_map<std::string, CmpInst::Predicate> srel2pred = {
+      {"<", CmpInst::Predicate::ICMP_SLT},
+      {"LE_OP", CmpInst::Predicate::ICMP_SLE},
+      {">", CmpInst::Predicate::ICMP_SGT},
+      {"GE_OP", CmpInst::Predicate::ICMP_SGE},
+      {"EQ_OP", CmpInst::Predicate::ICMP_EQ},
+      {"NE_OP", CmpInst::Predicate::ICMP_NE},
+  };
+  // arithmetic op: i32
+  auto it = sarith2op.find(Op);
+  if (it != sarith2op.end()) {
+    R = RHS->codegen();
+    return Builder->CreateBinOp(it->second, L, R, "arithtmp");
   } else {
-    std::unordered_map<std::string, CmpInst::Predicate> srel2pred = {
-        {"<", CmpInst::Predicate::ICMP_SLT},
-        {"LE_OP", CmpInst::Predicate::ICMP_SLE},
-        {">", CmpInst::Predicate::ICMP_SGT},
-        {"GE_OP", CmpInst::Predicate::ICMP_SGE},
-        {"EQ_OP", CmpInst::Predicate::ICMP_EQ},
-        {"NE_OP", CmpInst::Predicate::ICMP_NE},
-    };
+    // relation op: i32 in {0, 1}
     auto it = srel2pred.find(Op);
     if (it != srel2pred.end()) {
+      R = RHS->codegen();
       L = Builder->CreateICmp(it->second, L, R, "cmptmp");
-      return Builder->CreateSExt(L, Type::getInt32Ty(*TheContext), "i1_i32");
+      return Builder->CreateZExt(L, Builder->getInt32Ty(), "i1toi32_");
     } else {
-      return LogErrorV("invalid binary operator");
+      // logic op: short-circuit evaluation
+      BasicBlock *EntryBB = Builder->GetInsertBlock();
+      Function *TheFunction = EntryBB->getParent();
+      BasicBlock *ThenBB = BasicBlock::Create(*TheContext, "R", TheFunction);
+      BasicBlock *MergeBB = BasicBlock::Create(*TheContext, "bypass");
+      // trans possible i32 xhs (from e.g. AddExp) to i1
+      Value *CondV = Builder->CreateICmpNE(L, Builder->getInt32(0), "short");
+
+      if (Op == "&&") {
+        Builder->CreateCondBr(CondV, ThenBB, MergeBB);
+      } else if (Op == "||") {
+        Builder->CreateCondBr(CondV, MergeBB, ThenBB);
+      } else {
+        assert(false);
+      }
+
+      // Fill 'then' block
+      Builder->SetInsertPoint(ThenBB);
+      R = RHS->codegen();
+      R = Builder->CreateICmpNE(R, Builder->getInt32(0), "i32toi1_");
+      Builder->CreateBr(MergeBB);
+      ThenBB = Builder->GetInsertBlock(); // needed by PHI
+
+      // Finish merge block.
+      MergeBB->insertInto(TheFunction);
+      Builder->SetInsertPoint(MergeBB);
+      PHINode *PN = Builder->CreatePHI(Builder->getInt1Ty(), 2, "logictmp");
+      PN->addIncoming(CondV, EntryBB);
+      PN->addIncoming(R, ThenBB);
+      return Builder->CreateZExt(PN, Builder->getInt32Ty(), "i1toi32_");
     }
   }
 }
@@ -182,8 +214,7 @@ Value *IfAST::codegen() {
     return nullptr;
 
   // Convert condition to a bool by comparing non-equal to 0.
-  CondV = Builder->CreateICmpNE(
-      CondV, ConstantInt::get(*TheContext, APInt(32, 0, true)), "ifcond");
+  CondV = Builder->CreateICmpNE(CondV, Builder->getInt32(0), "ifcond");
   // get current function
   Function *TheFunction = Builder->GetInsertBlock()->getParent();
 
@@ -240,7 +271,7 @@ Value *WhileAST::codegen() {
   if (Body) {
     Body->codegen();
   }
-  //todo a natural fall-thru results in unterminated BB
+  // a natural fall-thru results in unterminated BB
   Builder->CreateBr(LoopendBB);
   
   // Finish 'loopend' block
@@ -250,8 +281,7 @@ Value *WhileAST::codegen() {
   if (!EndV)
     return nullptr;
   // while non-zero, loop
-  EndV = Builder->CreateICmpNE(
-      EndV, ConstantInt::get(*TheContext, APInt(32, 0, true)), "whilecond");
+  EndV = Builder->CreateICmpNE(EndV, Builder->getInt32(0), "whilecond");
   Builder->CreateCondBr(EndV, LoopBB, AfterBB);
 
   // Finish "afterloop" block.
@@ -274,9 +304,7 @@ Value *GotoAST::codegen() {
 Value* VarDefAST::codegen() {
   for (auto &&p : VarNames) {
     // alloc stack space
-    auto alloc =
-        Builder->CreateAlloca(Type::getInt32Ty(*TheContext), nullptr,
-                                        p.first);
+    auto alloc = Builder->CreateAlloca(Builder->getInt32Ty(), nullptr, p.first);
     // Record locals in the NamedValues map.
     NamedValues[p.first] = alloc;
     // InitVal
@@ -292,7 +320,7 @@ Value *GlblVarDefAST::codegen() {
   Constant *rv = nullptr;
   for (auto &&p : VarNames) {
     // todo const init
-    rv = TheModule->getOrInsertGlobal(p.first, Type::getInt32Ty(*TheContext));
+    rv = TheModule->getOrInsertGlobal(p.first, Builder->getInt32Ty());
     // Record in the NamedValues map.
     NamedValues[p.first] = rv;
   }
@@ -301,9 +329,8 @@ Value *GlblVarDefAST::codegen() {
 
 Function *PrototypeAST::codegen() {
   // Make the function type:  int(int,int) etc.
-  std::vector<Type *> Ints(Args.size(), Type::getInt32Ty(*TheContext));
-  FunctionType *FT =
-      FunctionType::get(Type::getInt32Ty(*TheContext), Ints, false);
+  std::vector<Type *> Ints(Args.size(), Builder->getInt32Ty());
+  FunctionType *FT = FunctionType::get(Builder->getInt32Ty(), Ints, false);
 
   Function *F =
       Function::Create(FT, Function::ExternalLinkage, Name, TheModule.get());
@@ -335,8 +362,8 @@ Function *FunctionAST::codegen() {
   // Record the function arguments in the NamedValues map.
   for (auto &Arg : TheFunction->args()) {
     // alloc stack space
-    auto alloc = Builder->CreateAlloca(Type::getInt32Ty(*TheContext), nullptr,
-                                        Arg.getName());
+    auto alloc =
+        Builder->CreateAlloca(Builder->getInt32Ty(), nullptr, Arg.getName());
     NamedValues[std::string(Arg.getName())] = alloc;
   }
   // Pass by Value
@@ -353,7 +380,7 @@ Function *FunctionAST::codegen() {
     // append default terminator
     if (!BB.getTerminator()) {
       Builder->SetInsertPoint(&BB);
-      Builder->CreateRet(ConstantInt::get(*TheContext, APInt(32, 1, true)));
+      Builder->CreateRet(Builder->getInt32(1));
     } 
     // eliminate instructions after first terminator
     else {
