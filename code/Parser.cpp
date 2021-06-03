@@ -3,9 +3,6 @@
 // Global variables
 bool debug = true;
 myHashSet symbol_table;
-myData INTtype;
-myData FLOATtype;
-int unnamedCount;
 
 bool checkProduction(const syntaxTree *parent, int node_num, ...)
 {
@@ -38,6 +35,99 @@ bool checkProduction(const syntaxTree *parent, int node_num, ...)
     return flag;
 }
 
+bool checkType(myData *t1, myData *t2)
+{
+    if (t1 == nullptr || t2 == nullptr)
+    {
+        return false;
+    }
+    if (t1->data_type != t2->data_type)
+        return false;
+    if (t1->data_type == BASIC && t2->data_type == BASIC)
+    {
+        return t1->basic == t2->basic;
+    }
+    else if (t1->data_type == ARRAY && t2->data_type == ARRAY)
+    {
+        return checkType(t1->array.elem, t2->array.elem);
+    }
+    else
+    {
+        fprintf(stderr, "Error [Semantic] at Line %d, Col %d: Unknown data type %s and %s.\n", 1, 1, t1->data_type, t2->data_type);
+        return false;
+    }
+}
+
+// 实参 形参
+bool argsCheck(myParam *args, myParam *params, int param_num)
+{
+    myParam *pa = args;
+    myParam *pp = params;
+    for (int i = 0; i < param_num; i++)
+    {
+        if (pa == NULL)
+            return false;
+        if (pp == NULL)
+        {
+            fprintf(stderr, "Error [Semantic] at Line %d, Col %d: Param list does not match param num.\n", 1, 1);
+            return false;
+        }
+        if (!checkType(pa->type, pp->type))
+            return false;
+        pa = pa->next;
+        pp = pp->next;
+    }
+    if (pp != NULL)
+    {
+        fprintf(stderr, "Error [Semantic] at Line %d, Col %d: Param list does not match param num.\n", 1, 1);
+        return false;
+    }
+    if (pa != NULL)
+        return false;
+    return true;
+}
+
+void checkArray(mySymbol *symb)
+{
+    int array_size = symb->type->array.size;
+    int cur_size = 0;
+    myData *it = symb->type->array.elem;
+    while (it != nullptr)
+    {
+        it = it->array.elem;
+        cur_size++;
+    }
+    if (cur_size == 0)
+    {
+        if (symb->symbol_type == CONST)
+        {
+            fprintf(stderr, "Error [Semantic] at Line %d, Col %d: Define an array without initialization.\n", 1, 1);
+            exit(0);
+        }
+    }
+    else if (cur_size < array_size)
+    {
+        int remain = array_size - cur_size;
+        while (remain > 0)
+        {
+            myData *new_ele = new myData;
+            new_ele->data_type = ARRAY;
+            new_ele->basic = INT;
+            new_ele->is_r_value = false;
+            new_ele->value = 0;
+            new_ele->array.size = symb->type->array.size;
+            new_ele->array.elem = nullptr;
+            addNewEleToArray(new_ele, symb);
+            remain--;
+        }
+    }
+    else if (cur_size > array_size)
+    {
+        fprintf(stderr, "Error [Semantic] at Line %d, Col %d: Array initialization size %d > definition size %d.\n", 1, 1, cur_size, array_size);
+        exit(0);
+    }
+}
+
 void semanticAnalysis(const syntaxTree *root)
 {
     semanticInit(root);
@@ -47,69 +137,45 @@ void semanticInit(const syntaxTree *root)
 {
     symbol_table = initHashSet(HASH_SIZE);
 
-    INTtype.data_type = BASIC;
-    INTtype.basic = INT;
-    INTtype.is_r_value = false;
-    FLOATtype.data_type = BASIC;
-    FLOATtype.basic = FLOAT;
-    FLOATtype.is_r_value = false;
-    unnamedCount = 0;
-
-    // add read and write
-    mySymbol *read = createSymbol("read", FUNC);
-    read->func->ret_type = &INTtype;
-    read->func->param_num = 0;
-    read->func->param_list = NULL;
-    insert(symbol_table, read);
-
-    mySymbol *write = createSymbol("write", FUNC);
-    write->func->ret_type = &INTtype;
-    write->func->param_num = 1;
-    myParam *param = new myParam;
-    param->type = &INTtype;
-    param->next = NULL;
-    write->func->param_list = param;
-    insert(symbol_table, write);
-
     if (debug)
     {
         printf("\n---------Sementic Analysis---------\n");
     }
 
-    analyseProgram(root);
+    analyseCompUnit(root);
     if (debug)
     {
         printSymbolTable(symbol_table);
     }
 }
 
-void analyseProgram(const syntaxTree *node)
-{
-    if (debug)
-    {
-        printf("analyse Program:\t");
-    }
+// void analyseProgram(const syntaxTree *node)
+// {
+//     if (debug)
+//     {
+//         printf("analyse Program:\t");
+//     }
 
-    if (node == NULL)
-    {
-        return;
-    }
+//     if (node == NULL)
+//     {
+//         return;
+//     }
 
-    if (checkProduction(node, 1, "CompUnit"))
-    {
-        analyseCompUnit(node->left);
-    }
-    else
-    {
-        printProductionError(node, "Program");
-    }
-}
+//     if (checkProduction(node, 1, "CompUnit"))
+//     {
+//         analyseCompUnit(node->left);
+//     }
+//     else
+//     {
+//         printProductionError(node, "Program");
+//     }
+// }
 
 void analyseCompUnit(const syntaxTree *node)
 {
     if (debug)
     {
-        printf("analyse CompUnit:\t");
+        printf("analyse %d CompUnit:\t", node->id);
     }
 
     if (node == NULL)
@@ -144,7 +210,7 @@ void analyseDecl(const syntaxTree *node)
 {
     if (debug)
     {
-        printf("analyse Decl:\t");
+        printf("analyse %d Decl:\t", node->id);
     }
 
     if (node == NULL)
@@ -169,7 +235,7 @@ void analyseConstDecl(const syntaxTree *node)
 {
     if (debug)
     {
-        printf("analyse ConstDecl:\t");
+        printf("analyse %d ConstDecl:\t", node->id);
     }
 
     if (node == NULL)
@@ -178,10 +244,9 @@ void analyseConstDecl(const syntaxTree *node)
     }
     if (checkProduction(node, 5, "CONST", "BType", "ConstDef", "ConstDef_list", ";"))
     {
-        // Remains to be solved
-        analyseBType(node->left->right);
-        analyseConstDef(node->left->right->right);
-        analyseConstDef_list(node->left->right->right->right);
+        myData *type = analyseBType(node->left->right);
+        analyseConstDef(node->left->right->right, type);
+        analyseConstDef_list(node->left->right->right->right, type);
     }
     else
     {
@@ -189,21 +254,20 @@ void analyseConstDecl(const syntaxTree *node)
     }
 }
 
-void analyseConstDef_list(const syntaxTree *node)
+void analyseConstDef_list(const syntaxTree *node, myData *type)
 {
     if (debug)
     {
-        printf("analyse ConstDef_list:\t");
+        printf("analyse %d ConstDef_list:\t", node->id);
     }
-
     if (node == NULL)
     {
         return;
     }
     if (checkProduction(node, 3, "ConstDef_list", ",", "ConstDef"))
     {
-        analyseConstDef_list(node->left);
-        analyseConstDef(node->left->right->right);
+        analyseConstDef_list(node->left, type);
+        analyseConstDef(node->left->right->right, type);
     }
     else if (checkProduction(node, 1, "Null"))
     {
@@ -218,27 +282,13 @@ myData *analyseBType(const syntaxTree *node)
 {
     if (debug)
     {
-        printf("analyse Btype:\t");
+        printf("analyse %d Btype:\t", node->id);
     }
 
     myData *type = new myData;
     if (checkProduction(node, 1, "INT"))
     {
-
-        type->data_type = BASIC;
         type->basic = INT;
-        type->is_r_value = false;
-    }
-    else if (checkProduction(node, 1, "FLOAT"))
-    {
-        type->data_type = BASIC;
-        type->basic = FLOAT;
-        type->is_r_value = false;
-    }
-    else if (checkProduction(node, 1, "BOOL"))
-    {
-        type->data_type = BASIC;
-        type->basic = BOOL;
         type->is_r_value = false;
     }
     else
@@ -248,11 +298,11 @@ myData *analyseBType(const syntaxTree *node)
     return type;
 }
 
-void analyseConstDef(const syntaxTree *node)
+void analyseConstDef(const syntaxTree *node, myData *type)
 {
     if (debug)
     {
-        printf("analyse ConstDef:\t");
+        printf("analyse %d ConstDef:\t", node->id);
     }
 
     if (node == NULL)
@@ -261,18 +311,31 @@ void analyseConstDef(const syntaxTree *node)
     }
     if (checkProduction(node, 3, "IDENT", "=", "ConstInitVal"))
     {
-        // myData* ele =
-        // mySymbol* ele = createSymbol(node->left->content, type);
-        analyseConstInitVal(node->left->right->right);
+        // Infer: must be const int a = 1;
+        mySymbol *constant_symbol = createSymbol(node->left->content, CONST);
+        constant_symbol->type = type;
+        analyseConstInitVal(node->left->right->right, constant_symbol);
+
+        constant_symbol->type->data_type = BASIC;
+        constant_symbol->type->basic = INT;
+
+        insert(symbol_table, constant_symbol);
     }
     else if (checkProduction(node, 6, "IDENT", "[", "ConstExp", "]", "=", "ConstInitVal"))
     {
-        //
-        //
-        analyseConstExp(node->left->right->right);
-        //
-        //
-        analyseConstInitVal(node->left->right->right->right->right->right);
+        // Infer: must be const int a[2] = {1, 2};
+        mySymbol *constant_symbol = createSymbol(node->left->content, CONST);
+        constant_symbol->type = type;
+        constant_symbol->type->data_type = ARRAY;
+        constant_symbol->type->value = 65535;
+        constant_symbol->type->array.size = 0;
+        constant_symbol->type->array.elem = nullptr;
+
+        analyseConstExp(node->left->right->right, constant_symbol);
+        analyseConstInitVal(node->left->right->right->right->right->right, constant_symbol);
+
+        checkArray(constant_symbol);
+        insert(symbol_table, constant_symbol);
     }
     else
     {
@@ -280,11 +343,11 @@ void analyseConstDef(const syntaxTree *node)
     }
 }
 
-void analyseConstInitVal(const syntaxTree *node)
+void analyseConstInitVal(const syntaxTree *node, mySymbol *symb)
 {
     if (debug)
     {
-        printf("analyse ConstInitVal:\t");
+        printf("analyse %d ConstInitVal:\t", node->id);
     }
 
     if (node == NULL)
@@ -293,19 +356,15 @@ void analyseConstInitVal(const syntaxTree *node)
     }
     if (checkProduction(node, 1, "ConstExp"))
     {
-        analyseConstExp(node->left);
+        analyseConstExp(node->left, symb);
     }
     else if (checkProduction(node, 2, "{", "}"))
     {
-        //
-        //
     }
     else if (checkProduction(node, 4, "{", "ConstExp", "ConstExp_list", "}"))
     {
-        //
-        analyseConstExp(node->left->right);
-        analyseConstExp_list(node->left->right->right);
-        //
+        analyseConstExp(node->left->right, symb);
+        analyseConstExp_list(node->left->right->right, symb);
     }
     else
     {
@@ -313,26 +372,23 @@ void analyseConstInitVal(const syntaxTree *node)
     }
 }
 
-void analyseConstExp_list(const syntaxTree *node)
+void analyseConstExp_list(const syntaxTree *node, mySymbol *symb)
 {
     if (debug)
     {
-        printf("analyse ConstExp_list:\t");
+        printf("analyse %d ConstExp_list:\t", node->id);
     }
-
     if (node == NULL)
     {
         return;
     }
     if (checkProduction(node, 3, "ConstExp_list", ",", "ConstExp"))
     {
-        analyseConstExp_list(node->left);
-        //
-        analyseConstExp(node->left->right);
+        analyseConstExp_list(node->left, symb);
+        analyseConstExp(node->left->right->right, symb);
     }
     else if (checkProduction(node, 1, "Null"))
     {
-        //
     }
     else
     {
@@ -344,7 +400,7 @@ void analyseVarDecl(const syntaxTree *node)
 {
     if (debug)
     {
-        printf("analyse VarDecl:\t");
+        printf("analyse %d VarDecl:\t", node->id);
     }
 
     if (node == NULL)
@@ -353,10 +409,9 @@ void analyseVarDecl(const syntaxTree *node)
     }
     if (checkProduction(node, 4, "BType", "VarDef", "VarDef_list", ";"))
     {
-        analyseBType(node->left);
-        analyseVarDef(node->left->right);
-        analyseVarDef_list(node->left->right->right);
-        // No need to analyse ";"
+        myData *type = analyseBType(node->left);
+        analyseVarDef(node->left->right, type);
+        analyseVarDef_list(node->left->right->right, type);
     }
     else
     {
@@ -364,11 +419,11 @@ void analyseVarDecl(const syntaxTree *node)
     }
 }
 
-void analyseVarDef_list(const syntaxTree *node)
+void analyseVarDef_list(const syntaxTree *node, myData *type)
 {
     if (debug)
     {
-        printf("analyse VarDef_list:\t");
+        printf("analyse %d VarDef_list:\t", node->id);
     }
 
     if (node == NULL)
@@ -377,13 +432,11 @@ void analyseVarDef_list(const syntaxTree *node)
     }
     if (checkProduction(node, 3, "VarDef_list", ",", "VarDef"))
     {
-        analyseVarDef_list(node->left);
-        //
-        analyseVarDef(node->left->right->right);
+        analyseVarDef_list(node->left, type);
+        analyseVarDef(node->left->right->right, type);
     }
     else if (checkProduction(node, 1, "Null"))
     {
-        //
     }
     else
     {
@@ -391,11 +444,11 @@ void analyseVarDef_list(const syntaxTree *node)
     }
 }
 
-void analyseVarDef(const syntaxTree *node)
+void analyseVarDef(const syntaxTree *node, myData *type)
 {
     if (debug)
     {
-        printf("analyse VarDef:\t");
+        printf("analyse %d VarDef:\t", node->id);
     }
 
     if (node == NULL)
@@ -404,29 +457,53 @@ void analyseVarDef(const syntaxTree *node)
     }
     if (checkProduction(node, 1, "IDENT"))
     {
-        // analyseIDENT(node->left);
+        // Infer: int a;
+        mySymbol *var_symbol = createSymbol(node->left->content, VAR);
+        var_symbol->type = type;
+        var_symbol->type->data_type = BASIC;
+
+        insert(symbol_table, var_symbol);
     }
     else if (checkProduction(node, 4, "IDENT", "[", "ConstExp", "]"))
     {
-        //
-        //
-        analyseConstExp(node->left->right->right);
-        //
+        // Infer: int a[2];
+        mySymbol *var_symbol = createSymbol(node->left->content, VAR);
+        var_symbol->type = type;
+        var_symbol->type->data_type = ARRAY;
+        var_symbol->type->array.size = 0;
+        var_symbol->type->array.elem = nullptr;
+
+        analyseConstExp(node->left->right->right, var_symbol);
+
+        checkArray(var_symbol);
+        insert(symbol_table, var_symbol);
     }
     else if (checkProduction(node, 3, "IDENT", "=", "InitVal"))
     {
-        //
-        //
-        analyseInitVal(node->left->right->right);
+        // Infer: int a = 1;
+        mySymbol *var_symbol = createSymbol(node->left->content, VAR);
+        var_symbol->type = type;
+        var_symbol->type->data_type = BASIC;
+
+        analyseInitVal(node->left->right->right, var_symbol);
+
+        insert(symbol_table, var_symbol);
     }
     else if (checkProduction(node, 6, "IDENT", "[", "ConstExp", "]", "=", "InitVal"))
     {
-        //
-        //
-        analyseConstExp(node->left->right->right);
-        //
-        //
-        analyseInitVal(node->left->right->right->right->right->right);
+        // Infer: int a[2] = {1, 2};
+        mySymbol *var_symbol = createSymbol(node->left->content, VAR);
+        var_symbol->type = type;
+        var_symbol->type->data_type = ARRAY;
+        var_symbol->type->value = 65535;
+        var_symbol->type->array.size = 0;
+        var_symbol->type->array.elem = nullptr;
+
+        analyseConstExp(node->left->right->right, var_symbol);
+        analyseInitVal(node->left->right->right->right->right->right, var_symbol);
+
+        checkArray(var_symbol);
+        insert(symbol_table, var_symbol);
     }
     else
     {
@@ -434,11 +511,11 @@ void analyseVarDef(const syntaxTree *node)
     }
 }
 
-void analyseInitVal(const syntaxTree *node)
+void analyseInitVal(const syntaxTree *node, mySymbol *symb)
 {
     if (debug)
     {
-        printf("analyse InitVal:\t");
+        printf("analyse %d InitVal:\t", node->id);
     }
 
     if (node == NULL)
@@ -447,19 +524,15 @@ void analyseInitVal(const syntaxTree *node)
     }
     if (checkProduction(node, 1, "Exp"))
     {
-        analyseExp(node->left);
+        analyseExp(node->left, symb);
     }
     else if (checkProduction(node, 2, "{", "}"))
     {
-        //
-        //
     }
     else if (checkProduction(node, 4, "{", "Exp", "Exp_list", "}"))
     {
-        //
-        analyseExp(node->left->right);
-        analyseExp_list(node->left->right->right);
-        //
+        analyseExp(node->left->right, symb);
+        analyseExp_list(node->left->right->right, symb);
     }
     else
     {
@@ -467,11 +540,11 @@ void analyseInitVal(const syntaxTree *node)
     }
 }
 
-void analyseExp_list(const syntaxTree *node)
+void analyseExp_list(const syntaxTree *node, mySymbol *symb)
 {
     if (debug)
     {
-        printf("analyse Exp_list:\t");
+        printf("analyse %d Exp_list:\t", node->id);
     }
 
     if (node == NULL)
@@ -480,13 +553,11 @@ void analyseExp_list(const syntaxTree *node)
     }
     if (checkProduction(node, 3, "Exp_list", ",", "Exp"))
     {
-        analyseExp_list(node->left);
-        //
-        analyseExp(node->left->right->right);
+        analyseExp_list(node->left, symb);
+        analyseExp(node->left->right->right, symb);
     }
     else if (checkProduction(node, 1, "Null"))
     {
-        //
     }
     else
     {
@@ -498,33 +569,43 @@ void analyseFuncDef(const syntaxTree *node)
 {
     if (debug)
     {
-        printf("analyse FuncDef:\t");
+        printf("analyse %d FuncDef:\t", node->id);
     }
 
     if (node == NULL)
     {
         return;
     }
-    if (checkProduction(node, 5, "BType", "IDENT", "(", ")", "Block"))
+    if (checkProduction(node, 6, "BType", "IDENT", "(", "FuncFParams", ")", "Block"))
     {
-        myData *func_ret_type = analyseBType(node->left);
+        // Infer: int f(...){}
         mySymbol *func_symbol = createSymbol(node->left->right->content, FUNC);
+        myData *func_ret_type = analyseBType(node->left);
+
         func_symbol->func->ret_type = func_ret_type;
-        func_symbol->func->param_num = 0;
-        func_symbol->func->param_list = NULL;
+        func_symbol->func->ret_type->data_type = BASIC;
+        func_symbol->func->ret_type->basic = INT;
+        func_symbol->func->ret_type->is_r_value = true;
+
+        myParam *tmp = new myParam;
+        tmp->type = nullptr;
+        tmp->next = nullptr;
+        func_symbol->func->param_list = tmp;
+
+        analyseFuncFParams(node->left->right->right->right, func_symbol);
+        myParam *p;
+        int param_nums = 0;
+        p = func_symbol->func->param_list->next;
+        while (p != nullptr)
+        {
+            param_nums++;
+            p = p->next;
+        }
+        func_symbol->func->param_num = param_nums;
+
         insert(symbol_table, func_symbol);
 
-        analyseBlock(node->left->right->right->right->right);
-        // printf("1");
-    }
-    else if (checkProduction(node, 6, "BType", "IDENT", "(", "FuncFParams", ")", "Block"))
-    {
-        analyseBType(node->left);
-        //
-        //
-        analyseFuncFParams(node->left->right->right->right);
-        //
-        analyseBlock(node->left->right->right->right->right->right);
+        analyseBlock(node->left->right->right->right->right->right, func_symbol);
     }
     else
     {
@@ -532,11 +613,11 @@ void analyseFuncDef(const syntaxTree *node)
     }
 }
 
-void analyseFuncFParams(const syntaxTree *node)
+void analyseFuncFParams(const syntaxTree *node, mySymbol *symb)
 {
     if (debug)
     {
-        printf("analyse FuncFParams:\t");
+        printf("analyse %d FuncFParams:\t", node->id);
     }
 
     if (node == NULL)
@@ -545,8 +626,11 @@ void analyseFuncFParams(const syntaxTree *node)
     }
     if (checkProduction(node, 2, "FuncFParam", "FuncFParam_list"))
     {
-        analyseFuncFParam(node->left);
-        analyseFuncFParam_list(node->left->right);
+        analyseFuncFParam(node->left, symb);
+        analyseFuncFParam_list(node->left->right, symb);
+    }
+    else if (checkProduction(node, 1, "Null"))
+    {
     }
     else
     {
@@ -554,11 +638,11 @@ void analyseFuncFParams(const syntaxTree *node)
     }
 }
 
-void analyseFuncFParam_list(const syntaxTree *node)
+void analyseFuncFParam_list(const syntaxTree *node, mySymbol *symb)
 {
     if (debug)
     {
-        printf("analyse FuncFParam_list:\t");
+        printf("analyse %d FuncFParam_list:\t", node->id);
     }
 
     if (node == NULL)
@@ -567,13 +651,11 @@ void analyseFuncFParam_list(const syntaxTree *node)
     }
     if (checkProduction(node, 3, "FuncFParam_list", ",", "FuncFParam"))
     {
-        analyseFuncFParam_list(node->left);
-        //
-        analyseFuncFParam(node->left->right->right);
+        analyseFuncFParam_list(node->left, symb);
+        analyseFuncFParam(node->left->right->right, symb);
     }
     else if (checkProduction(node, 1, "Null"))
     {
-        //
     }
     else
     {
@@ -581,11 +663,11 @@ void analyseFuncFParam_list(const syntaxTree *node)
     }
 }
 
-void analyseFuncFParam(const syntaxTree *node)
+void analyseFuncFParam(const syntaxTree *node, mySymbol *symb)
 {
     if (debug)
     {
-        printf("analyse FuncFparam:\t");
+        printf("analyse %d FuncFParam:\t", node->id);
     }
 
     if (node == NULL)
@@ -594,15 +676,27 @@ void analyseFuncFParam(const syntaxTree *node)
     }
     if (checkProduction(node, 2, "BType", "IDENT"))
     {
-        analyseBType(node->left);
-        //
+        myData *param_type = analyseBType(node->left);
+        param_type->data_type = BASIC;
+        myParam *new_param = new myParam;
+        new_param->type = param_type;
+        new_param->next = nullptr;
+
+        addNewParamToFunc(new_param, symb);
+
+        // Param's name is not important
     }
     else if (checkProduction(node, 4, "BType", "IDENT", "[", "]"))
     {
-        analyseBType(node->left);
-        //
-        //
-        //
+        myData *param_type = analyseBType(node->left);
+        param_type->data_type = ARRAY;
+        myParam *new_param = new myParam;
+        new_param->type = param_type;
+        new_param->next = nullptr;
+
+        addNewParamToFunc(new_param, symb);
+
+        // Param's name is not important
     }
     else
     {
@@ -610,11 +704,11 @@ void analyseFuncFParam(const syntaxTree *node)
     }
 }
 
-void analyseBlock(const syntaxTree *node)
+void analyseBlock(const syntaxTree *node, mySymbol *symb)
 {
     if (debug)
     {
-        printf("analyse Block:\t");
+        printf("analyse %d Block:\t", node->id);
     }
 
     if (node == NULL)
@@ -623,9 +717,7 @@ void analyseBlock(const syntaxTree *node)
     }
     if (checkProduction(node, 3, "{", "BlockItem_list", "}"))
     {
-        //
-        analyseBlockItem_list(node->left->right);
-        //
+        analyseBlockItem_list(node->left->right, symb);
     }
     else
     {
@@ -633,11 +725,11 @@ void analyseBlock(const syntaxTree *node)
     }
 }
 
-void analyseBlockItem_list(const syntaxTree *node)
+void analyseBlockItem_list(const syntaxTree *node, mySymbol *symb)
 {
     if (debug)
     {
-        printf("analyse BlockItem_list:\t");
+        printf("analyse %d BlockItem_list:\t", node->id);
     }
 
     if (node == NULL)
@@ -646,12 +738,11 @@ void analyseBlockItem_list(const syntaxTree *node)
     }
     if (checkProduction(node, 2, "BlockItem_list", "BlockItem"))
     {
-        analyseBlockItem_list(node->left);
-        analyseBlockItem(node->left->right);
+        analyseBlockItem_list(node->left, symb);
+        analyseBlockItem(node->left->right, symb);
     }
     else if (checkProduction(node, 1, "Null"))
     {
-        //
     }
     else
     {
@@ -659,11 +750,11 @@ void analyseBlockItem_list(const syntaxTree *node)
     }
 }
 
-void analyseBlockItem(const syntaxTree *node)
+void analyseBlockItem(const syntaxTree *node, mySymbol *symb)
 {
     if (debug)
     {
-        printf("analyse BlockItem:\t");
+        printf("analyse %d BlockItem:\t", node->id);
     }
 
     if (node == NULL)
@@ -676,7 +767,7 @@ void analyseBlockItem(const syntaxTree *node)
     }
     else if (checkProduction(node, 1, "Stmt"))
     {
-        analyseStmt(node->left);
+        analyseStmt(node->left, symb);
     }
     else
     {
@@ -684,11 +775,11 @@ void analyseBlockItem(const syntaxTree *node)
     }
 }
 
-void analyseStmt(const syntaxTree *node)
+void analyseStmt(const syntaxTree *node, mySymbol *symb)
 {
     if (debug)
     {
-        printf("analyse Stmt:\t");
+        printf("analyse %d Stmt:\t", node->id);
     }
 
     if (node == NULL)
@@ -697,70 +788,49 @@ void analyseStmt(const syntaxTree *node)
     }
     if (checkProduction(node, 4, "LVal", "=", "Exp", ";"))
     {
-        analyseLVal(node->left);
-        //
-        analyseExp(node->left->right->right);
-        // No need to analyse ";"
+        analyseLVal(node->left, symb);
+        analyseExp(node->left->right->right, symb);
     }
     else if (checkProduction(node, 2, "Exp", ";"))
     {
-        analyseExp(node->left);
-        // No need to analyse ";"
+        analyseExp(node->left, symb);
     }
     else if (checkProduction(node, 1, ";"))
     {
-        // No need to analyse ";"
     }
     else if (checkProduction(node, 1, "Block"))
     {
-        analyseBlock(node->left);
+        analyseBlock(node->left, symb);
     }
     else if (checkProduction(node, 5, "IF", "(", "Cond", ")", "Stmt"))
     {
-        //
-        //
-        analyseCond(node->left->right->right);
-        //
-        analyseStmt(node->left->right->right->right->right);
+        analyseCond(node->left->right->right, symb);
+        analyseStmt(node->left->right->right->right->right, symb);
     }
     else if (checkProduction(node, 7, "IF", "(", "Cond", ")", "Stmt", "ELSE", "Stmt"))
     {
-        //
-        //
-        analyseCond(node->left->right->right);
-        //
-        analyseStmt(node->left->right->right->right->right);
-        //
-        analyseStmt(node->left->right->right->right->right->right);
+
+        analyseCond(node->left->right->right, symb);
+        analyseStmt(node->left->right->right->right->right, symb);
+        analyseStmt(node->left->right->right->right->right->right, symb);
     }
     else if (checkProduction(node, 5, "WHILE", "(", "Cond", ")", "Stmt"))
     {
-        //
-        //
-        analyseCond(node->left->right->right);
-        //
-        analyseStmt(node->left->right->right->right->right);
+        analyseCond(node->left->right->right, symb);
+        analyseStmt(node->left->right->right->right->right, symb);
     }
     else if (checkProduction(node, 2, "BREAK", ";"))
     {
-        //
-        // No need to analyse ";"
     }
     else if (checkProduction(node, 2, "CONTINUE", ";"))
     {
-        //
-        // No need to analyse ";"
     }
     else if (checkProduction(node, 2, "RETURN", ";"))
     {
-        //
-        // No need to analyse ";"
     }
     else if (checkProduction(node, 3, "RETURN", "Exp", ";"))
     {
-        //
-        analyseExp(node->left->right);
-        // No need to analyse ";"
+        analyseExp(node->left->right, symb);
     }
     else
     {
@@ -768,11 +838,11 @@ void analyseStmt(const syntaxTree *node)
     }
 }
 
-void analyseExp(const syntaxTree *node)
+void analyseExp(const syntaxTree *node, mySymbol *symb)
 {
     if (debug)
     {
-        printf("analyse Exp:\t");
+        printf("analyse %d Exp:\t", node->id);
     }
 
     if (node == NULL)
@@ -781,7 +851,7 @@ void analyseExp(const syntaxTree *node)
     }
     if (checkProduction(node, 1, "AddExp"))
     {
-        analyseAddExp(node->left);
+        analyseAddExp(node->left, symb);
     }
     else
     {
@@ -789,11 +859,11 @@ void analyseExp(const syntaxTree *node)
     }
 }
 
-void analyseCond(const syntaxTree *node)
+void analyseCond(const syntaxTree *node, mySymbol *symb)
 {
     if (debug)
     {
-        printf("analyse Cond:\t");
+        printf("analyse %d Cond:\t", node->id);
     }
 
     if (node == NULL)
@@ -802,7 +872,7 @@ void analyseCond(const syntaxTree *node)
     }
     if (checkProduction(node, 1, "LOrExp"))
     {
-        analyseLOrExp(node->left);
+        analyseLOrExp(node->left, symb);
     }
     else
     {
@@ -810,11 +880,11 @@ void analyseCond(const syntaxTree *node)
     }
 }
 
-void analyseLVal(const syntaxTree *node)
+void analyseLVal(const syntaxTree *node, mySymbol *symb)
 {
     if (debug)
     {
-        printf("analyse LVal:\t");
+        printf("analyse %d LVal:\t", node->id);
     }
 
     if (node == NULL)
@@ -829,7 +899,7 @@ void analyseLVal(const syntaxTree *node)
     {
         //
         //
-        analyseExp(node->left->right->right);
+        analyseExp(node->left->right->right, symb);
         //
     }
     else
@@ -838,11 +908,11 @@ void analyseLVal(const syntaxTree *node)
     }
 }
 
-void analysePrimaryExp(const syntaxTree *node)
+void analysePrimaryExp(const syntaxTree *node, mySymbol *symb)
 {
     if (debug)
     {
-        printf("analyse PrimaryExp:\t");
+        printf("analyse %d PrimaryExp:\t", node->id);
     }
 
     if (node == NULL)
@@ -852,16 +922,46 @@ void analysePrimaryExp(const syntaxTree *node)
     if (checkProduction(node, 3, "(", "Exp", ")"))
     {
         //
-        analyseExp(node->left->right);
+        analyseExp(node->left->right, symb);
         //
     }
     else if (checkProduction(node, 1, "LVal"))
     {
-        analyseLVal(node->left);
+        analyseLVal(node->left, symb);
     }
     else if (checkProduction(node, 1, "NUMBER"))
     {
-        //
+        if (symb->type->data_type == BASIC)
+        {
+            symb->type->value = str2int(node->left->content);
+        }
+        else if (symb->type->data_type == ARRAY)
+        {
+            if (symb->type->array.size == 0)
+            {
+                int array_size = str2int(node->left->content);
+                if (array_size <= 0)
+                {
+                    fprintf(stderr, "Error [Semantic] at Line %d, Col %d: Wrong array size %d.\n", 1, 1, array_size);
+                }
+                else
+                {
+                    symb->type->array.size = array_size;
+                    symb->type->array.elem = nullptr;
+                }
+            }
+            else if (symb->type->array.size > 0)
+            {
+                myData *new_ele = new myData;
+                new_ele->data_type = ARRAY;
+                new_ele->basic = INT;
+                new_ele->is_r_value = false;
+                new_ele->value = str2int(node->left->content);
+                new_ele->array.size = symb->type->array.size;
+                new_ele->array.elem = nullptr;
+                addNewEleToArray(new_ele, symb);
+            }
+        }
     }
     else
     {
@@ -869,11 +969,11 @@ void analysePrimaryExp(const syntaxTree *node)
     }
 }
 
-void analyseUnaryExp(const syntaxTree *node)
+void analyseUnaryExp(const syntaxTree *node, mySymbol *symb)
 {
     if (debug)
     {
-        printf("analyse UnaryExp:\t");
+        printf("analyse %d UnaryExp:\t", node->id);
     }
 
     if (node == NULL)
@@ -882,7 +982,7 @@ void analyseUnaryExp(const syntaxTree *node)
     }
     if (checkProduction(node, 1, "PrimaryExp"))
     {
-        analysePrimaryExp(node->left);
+        analysePrimaryExp(node->left, symb);
     }
     else if (checkProduction(node, 3, "IDENT", "(", ")"))
     {
@@ -894,13 +994,13 @@ void analyseUnaryExp(const syntaxTree *node)
     {
         //
         //
-        analyseFuncRParams(node->left->right->right);
+        analyseFuncRParams(node->left->right->right, symb);
         //
     }
     else if (checkProduction(node, 2, "UnaryOp", "UnaryExp"))
     {
-        analyseUnaryOp(node->left);
-        analyseUnaryExp(node->left->right);
+        analyseUnaryOp(node->left, symb);
+        analyseUnaryExp(node->left->right, symb);
     }
     else
     {
@@ -908,11 +1008,11 @@ void analyseUnaryExp(const syntaxTree *node)
     }
 }
 
-void analyseUnaryOp(const syntaxTree *node)
+void analyseUnaryOp(const syntaxTree *node, mySymbol *symb)
 {
     if (debug)
     {
-        printf("analyse UnaryOp:\t");
+        printf("analyse %d UnaryOp:\t", node->id);
     }
 
     if (node == NULL)
@@ -937,11 +1037,11 @@ void analyseUnaryOp(const syntaxTree *node)
     }
 }
 
-void analyseFuncRParams(const syntaxTree *node)
+void analyseFuncRParams(const syntaxTree *node, mySymbol *symb)
 {
     if (debug)
     {
-        printf("analyse FuncRParams:\t");
+        printf("analyse %d FuncRParams:\t", node->id);
     }
 
     if (node == NULL)
@@ -950,8 +1050,11 @@ void analyseFuncRParams(const syntaxTree *node)
     }
     if (checkProduction(node, 2, "Exp", "Exp_list"))
     {
-        analyseExp(node->left);
-        analyseExp_list(node->left->right);
+        analyseExp(node->left, symb);
+        analyseExp_list(node->left->right, symb);
+    }
+    else if (checkProduction(node, 1, "Null"))
+    {
     }
     else
     {
@@ -959,32 +1062,31 @@ void analyseFuncRParams(const syntaxTree *node)
     }
 }
 
-void analyseAddExp(const syntaxTree *node)
+void analyseAddExp(const syntaxTree *node, mySymbol *symb)
 {
     if (debug)
     {
-        printf("analyse AddExp:\t");
+        printf("analyse %d AddExp:\t", node->id);
     }
-
     if (node == NULL)
     {
         return;
     }
     if (checkProduction(node, 1, "MulExp"))
     {
-        analyseMulExp(node->left);
+        analyseMulExp(node->left, symb);
     }
     else if (checkProduction(node, 3, "AddExp", "+", "MulExp"))
     {
-        analyseAddExp(node->left);
+        analyseAddExp(node->left, symb);
         //
-        analyseMulExp(node->left->right->right);
+        analyseMulExp(node->left->right->right, symb);
     }
     else if (checkProduction(node, 3, "AddExp", "-", "MulExp"))
     {
-        analyseAddExp(node->left);
+        analyseAddExp(node->left, symb);
         //
-        analyseMulExp(node->left->right->right);
+        analyseMulExp(node->left->right->right, symb);
     }
     else
     {
@@ -992,11 +1094,11 @@ void analyseAddExp(const syntaxTree *node)
     }
 }
 
-void analyseMulExp(const syntaxTree *node)
+void analyseMulExp(const syntaxTree *node, mySymbol *symb)
 {
     if (debug)
     {
-        printf("analyse MulExp:\t");
+        printf("analyse %d MulExp:\t", node->id);
     }
 
     if (node == NULL)
@@ -1005,25 +1107,25 @@ void analyseMulExp(const syntaxTree *node)
     }
     if (checkProduction(node, 1, "UnaryExp"))
     {
-        analyseUnaryExp(node->left);
+        analyseUnaryExp(node->left, symb);
     }
     else if (checkProduction(node, 3, "MulExp", "*", "UnaryExp"))
     {
-        analyseMulExp(node->left);
+        analyseMulExp(node->left, symb);
         //
-        analyseUnaryExp(node->left->right->right);
+        analyseUnaryExp(node->left->right->right, symb);
     }
     else if (checkProduction(node, 3, "MulExp", "/", "UnaryExp"))
     {
-        analyseMulExp(node->left);
+        analyseMulExp(node->left, symb);
         //
-        analyseUnaryExp(node->left->right->right);
+        analyseUnaryExp(node->left->right->right, symb);
     }
     else if (checkProduction(node, 3, "MulExp", "%", "UnaryExp"))
     {
-        analyseMulExp(node->left);
+        analyseMulExp(node->left, symb);
         //
-        analyseUnaryExp(node->left->right->right);
+        analyseUnaryExp(node->left->right->right, symb);
     }
     else
     {
@@ -1031,11 +1133,11 @@ void analyseMulExp(const syntaxTree *node)
     }
 }
 
-void analyseRelExp(const syntaxTree *node)
+void analyseRelExp(const syntaxTree *node, mySymbol *symb)
 {
     if (debug)
     {
-        printf("analyse RelExp:\t");
+        printf("analyse %d RelExp:\t", node->id);
     }
 
     if (node == NULL)
@@ -1044,31 +1146,31 @@ void analyseRelExp(const syntaxTree *node)
     }
     if (checkProduction(node, 1, "AddExp"))
     {
-        analyseAddExp(node->left);
+        analyseAddExp(node->left, symb);
     }
     else if (checkProduction(node, 3, "RelExp", "<", "AddExp"))
     {
-        analyseRelExp(node->left);
-        //
-        analyseAddExp(node->left->right->right);
+        analyseRelExp(node->left, symb);
+        //symb
+        analyseAddExp(node->left->right->right, symb);
     }
     else if (checkProduction(node, 3, "RelExp", ">", "AddExp"))
     {
-        analyseRelExp(node->left);
+        analyseRelExp(node->left, symb);
         //
-        analyseAddExp(node->left->right->right);
+        analyseAddExp(node->left->right->right, symb);
     }
     else if (checkProduction(node, 3, "RelExp", "LE_OP", "AddExp"))
     {
-        analyseRelExp(node->left);
+        analyseRelExp(node->left, symb);
         //
-        analyseAddExp(node->left->right->right);
+        analyseAddExp(node->left->right->right, symb);
     }
     else if (checkProduction(node, 3, "RelExp", "GE_OP", "AddExp"))
     {
-        analyseRelExp(node->left);
+        analyseRelExp(node->left, symb);
         //
-        analyseAddExp(node->left->right->right);
+        analyseAddExp(node->left->right->right, symb);
     }
     else
     {
@@ -1076,11 +1178,11 @@ void analyseRelExp(const syntaxTree *node)
     }
 }
 
-void analyseEqExp(const syntaxTree *node)
+void analyseEqExp(const syntaxTree *node, mySymbol *symb)
 {
     if (debug)
     {
-        printf("analyse EqExp:\t");
+        printf("analyse %d EqExp:\t", node->id);
     }
 
     if (node == NULL)
@@ -1089,19 +1191,19 @@ void analyseEqExp(const syntaxTree *node)
     }
     if (checkProduction(node, 1, "RelExp"))
     {
-        analyseRelExp(node->left);
+        analyseRelExp(node->left, symb);
     }
     else if (checkProduction(node, 3, "EqExp", "EQ_OP", "RelExp"))
     {
-        analyseEqExp(node->left);
+        analyseEqExp(node->left, symb);
         //
-        analyseRelExp(node->left->right->right);
+        analyseRelExp(node->left->right->right, symb);
     }
     else if (checkProduction(node, 3, "EqExp", "NE_OP", "RelExp"))
     {
-        analyseEqExp(node->left);
+        analyseEqExp(node->left, symb);
         //
-        analyseRelExp(node->left->right->right);
+        analyseRelExp(node->left->right->right, symb);
     }
     else
     {
@@ -1109,11 +1211,11 @@ void analyseEqExp(const syntaxTree *node)
     }
 }
 
-void analyseLAndExp(const syntaxTree *node)
+void analyseLAndExp(const syntaxTree *node, mySymbol *symb)
 {
     if (debug)
     {
-        printf("analyse LAndExp:\t");
+        printf("analyse %d LAndExp:\t", node->id);
     }
 
     if (node == NULL)
@@ -1122,13 +1224,13 @@ void analyseLAndExp(const syntaxTree *node)
     }
     if (checkProduction(node, 1, "EqExp"))
     {
-        analyseEqExp(node->left);
+        analyseEqExp(node->left, symb);
     }
     else if (checkProduction(node, 3, "LAndExp", "AND_OP", "EqExp"))
     {
-        analyseLAndExp(node->left);
+        analyseLAndExp(node->left, symb);
         //
-        analyseEqExp(node->left->right->right);
+        analyseEqExp(node->left->right->right, symb);
     }
     else
     {
@@ -1136,11 +1238,11 @@ void analyseLAndExp(const syntaxTree *node)
     }
 }
 
-void analyseLOrExp(const syntaxTree *node)
+void analyseLOrExp(const syntaxTree *node, mySymbol *symb)
 {
     if (debug)
     {
-        printf("analyse LOrExp:\t");
+        printf("analyse %d LOrExp:\t", node->id);
     }
 
     if (node == NULL)
@@ -1149,13 +1251,13 @@ void analyseLOrExp(const syntaxTree *node)
     }
     if (checkProduction(node, 1, "LAndExp"))
     {
-        analyseLAndExp(node->left);
+        analyseLAndExp(node->left, symb);
     }
     else if (checkProduction(node, 3, "LOrExp", "OR_OP", "LAndExp"))
     {
-        analyseLOrExp(node->left);
+        analyseLOrExp(node->left, symb);
         //
-        analyseLAndExp(node->left->right->right);
+        analyseLAndExp(node->left->right->right, symb);
     }
     else
     {
@@ -1163,11 +1265,11 @@ void analyseLOrExp(const syntaxTree *node)
     }
 }
 
-void analyseConstExp(const syntaxTree *node)
+void analyseConstExp(const syntaxTree *node, mySymbol *symb)
 {
     if (debug)
     {
-        printf("analyse ConstExp:\t");
+        printf("analyse %d ConstExp:\t", node->id);
     }
 
     if (node == NULL)
@@ -1176,12 +1278,17 @@ void analyseConstExp(const syntaxTree *node)
     }
     if (checkProduction(node, 1, "AddExp"))
     {
-        analyseAddExp(node->left);
+        analyseAddExp(node->left, symb);
     }
     else
     {
         printProductionError(node, "ConstExp");
     }
+}
+
+void destroySymbolTable()
+{
+    delete symbol_table;
 }
 
 void printProductionError(const syntaxTree *node, const char *msg)
@@ -1213,7 +1320,7 @@ void printSymbolTable(myHashSet symbol_table)
             count++;
             printf("[Symbol %d]\n", count);
             mySymbol *s = p->symbol;
-            string symbol_type[] = {"VAR", "FUNC"};
+            string symbol_type[] = {"VAR", "FUNC", "CONST"};
             printf("Name: %s\nSymbol Type: %s\n", s->name.c_str(), symbol_type[s->symbol_type].c_str());
             if (s->symbol_type == FUNC)
             {
@@ -1221,8 +1328,8 @@ void printSymbolTable(myHashSet symbol_table)
                 printDataType(s->func->ret_type);
                 printf("Parameter Nums: %d\n", s->func->param_num);
                 printf("Parameter List: ");
-                myParam *pl = s->func->param_list;
-                if (pl == NULL)
+                myParam *pl = s->func->param_list->next;
+                if (pl == nullptr)
                 {
                     printf("Null\n");
                 }
@@ -1247,4 +1354,28 @@ void printSymbolTable(myHashSet symbol_table)
         }
     }
     printf("\n");
+}
+
+void addNewEleToArray(myData *new_ele, mySymbol *symb)
+{
+    myData *rear;
+
+    rear = symb->type;
+    while (rear->array.elem != nullptr)
+    {
+        rear = rear->array.elem;
+    }
+    rear->array.elem = new_ele;
+}
+
+void addNewParamToFunc(myParam *new_param, mySymbol *symb)
+{
+    myParam *rear;
+
+    rear = symb->func->param_list;
+    while (rear->next != nullptr)
+    {
+        rear = rear->next;
+    }
+    rear->next = new_param;
 }

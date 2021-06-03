@@ -64,6 +64,7 @@ int main(int argc, char **argv)
             nodePrint(syntax, filename, verbose);
             semanticAnalysis(semantic);
             delete root;
+            destroySymbolTable();
         }
 
         fclose(file);

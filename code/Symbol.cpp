@@ -8,9 +8,11 @@ mySymbol *createSymbol(string name, mySymbolType type)
     switch (type)
     {
     case VAR:
+    case CONST:
     case FUNC:
         symbol->func = new myFunc;
         break;
+
     default:
         fprintf(stderr, "ERROR [Semantic] Wrong symbol type when creating symbol.\n");
         return NULL;
@@ -22,7 +24,7 @@ void printDataType(myData *data)
 {
     if (data == NULL)
     {
-        printf("(null)\n");
+        // printf("(null)\n");
         return;
     }
     string data_type[] = {"BASIC", "ARRAY"};
@@ -30,13 +32,15 @@ void printDataType(myData *data)
     printf("\tdata is r value: %s\n", data->is_r_value ? "yes" : "no");
     if (data->data_type == BASIC)
     {
-        string basic_type[] = {"INT", "FLOAT", "BOOL"};
+        string basic_type[] = {"INT"};
         printf("\tbasic: %s\n", basic_type[data->basic].c_str());
+        printf("\tvalue: %d\n", data->value);
     }
     else if (data->data_type == ARRAY)
     {
-        printf("\tarray size: %d\n", data->array.size);
-        printf("\tarray data type: %s\n", data_type[data->array.elem->data_type].c_str());
+        printf("\t\tarray size: %d\n", data->array.size);
+        printf("\t\tarray data type: %s\n", data_type[data->data_type].c_str());
+        printf("\t\tarray data value: %d\n", data->value);
         printDataType(data->array.elem);
     }
     else

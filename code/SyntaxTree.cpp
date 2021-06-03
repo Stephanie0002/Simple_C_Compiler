@@ -15,15 +15,20 @@ syntaxTree *createSyntaxTree(string name, int num, ...)
 
     va_list valist;
     va_start(valist, num);
-
+    if (num != 0)
+    {
+        // printf("%s ---> ", root->name.c_str());
+    }
     syntaxTree *tmp = NULL;
     if (num > 0)
     {
         tmp = va_arg(valist, syntaxTree *);
         root->left = tmp;
         root->lineno = tmp->lineno;
+
         if (num == 1)
         {
+            // printf("%s ", tmp->name.c_str());
             if (tmp->content.size() > 0)
             {
                 root->content = tmp->content;
@@ -33,10 +38,12 @@ syntaxTree *createSyntaxTree(string name, int num, ...)
         }
         else
         {
+            // printf("%s ", tmp->name.c_str());
             for (int i = 1; i < num; i++)
             {
                 tmp->right = va_arg(valist, syntaxTree *);
                 tmp = tmp->right;
+                // printf("%s ", tmp->name.c_str());
             }
         }
     }
@@ -48,7 +55,7 @@ syntaxTree *createSyntaxTree(string name, int num, ...)
         if (root->name == "NUMBER")
         {
             int value;
-            if (strlen(yytext) > 1 && yytext[0] == '0' && yytext[1] != 'x')
+            if (strlen(yytext) > 1 && yytext[0] == '0' && (yytext[1] != 'x' || yytext[1] != 'X'))
             {
                 sscanf(yytext, "%o", &value); //8进制整数
             }
@@ -60,19 +67,13 @@ syntaxTree *createSyntaxTree(string name, int num, ...)
                 value = atoi(yytext); //10进制整数
             root->content = int2str(value);
         }
-        else if (root->name == "TRUE")
-        {
-            root->content = int2str(1);
-        }
-        else if (root->name == "FALSE")
-        {
-            root->content = int2str(0);
-        }
         else
         {
             root->content = yytext;
         }
+        // printf("add node %s:%s", root->name.c_str(), root->content.c_str());
     }
+    // printf("\n");
     return root;
 }
 
@@ -149,7 +150,10 @@ void nodePrint(syntaxTree *root, string filename, bool verbose)
         floorTraverse(tmp);
     }
     verbose = true;
-    printf("\n");
+    if (verbose)
+    {
+        printf("\n");
+    }
     if (root == NULL)
         return;
     // remove dir/ preceding

@@ -20,8 +20,6 @@ typedef enum DataType_
 typedef enum BasicType_
 {
     INT,
-    FLOAT,
-    BOOL
 } myBasicType;
 struct Data_
 {
@@ -36,6 +34,7 @@ struct Data_
             int size;
         } array; // 数组类型
     };
+    int value;
 };
 
 typedef enum SymbolType_

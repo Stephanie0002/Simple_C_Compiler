@@ -15,6 +15,7 @@ struct syntaxTree *root = NULL;
 
 int yylex(void);
 void yyerror(const char *);
+int isNewError(int error_lineno);
 %}
 
 %union {
@@ -22,13 +23,13 @@ void yyerror(const char *);
 }
 
 %token <node> NUMBER CONST IDENT
-%token <node> INT FLOAT BOOL
+%token <node> INT
 %token <node> IF ELSE WHILE BREAK CONTINUE RETURN
 %token <node> '+' '-' '*' '/' '%' '<' '>' '!' '='
 %token <node> LE_OP GE_OP EQ_OP NE_OP AND_OP OR_OP 
 %token <node> ';' ',' '[' ']' '(' ')' '{' '}'
 
-%type <node> Program CompUnit Decl 
+%type <node> CompUnit Decl 
 %type <node> ConstDecl VarDecl ConstDef ConstInitVal ConstExp
 %type <node> VarDef InitVal
 %type <node> Exp PrimaryExp UnaryExp LVal AddExp LOrExp UnaryOp MulExp RelExp EqExp LAndExp
@@ -36,6 +37,8 @@ void yyerror(const char *);
 %type <node> Block BlockItem
 %type <node> ConstDef_list ConstExp_list VarDef_list Exp_list FuncFParam_list BlockItem_list
 %type <node> Stmt Cond
+
+%nonassoc error
 
 // %left '[' ']' '(' ')'
 %right '!'
@@ -48,17 +51,12 @@ void yyerror(const char *);
 %nonassoc ELSE
 %%
 
-// 程序入口
-Program:
-        CompUnit{root = createSyntaxTree("Program", 1, $1);}
-    ;
-
 // 编译单元
 CompUnit: 
-        CompUnit Decl{$$ = createSyntaxTree("CompUnit", 2, $1, $2);}
-    |   Decl{$$ = createSyntaxTree("CompUnit", 1, $1);}
-    |   CompUnit FuncDef{$$ = createSyntaxTree("CompUnit", 2, $1, $2);}
-    |   FuncDef{$$ = createSyntaxTree("CompUnit", 1, $1);}
+        CompUnit Decl{ root = $$ = createSyntaxTree("CompUnit", 2, $1, $2);}
+    |   Decl{ root = $$ = createSyntaxTree("CompUnit", 1, $1);}
+    |   CompUnit FuncDef{ root = $$ = createSyntaxTree("CompUnit", 2, $1, $2);}
+    |   FuncDef{ root = $$ = createSyntaxTree("CompUnit", 1, $1);}
     ;
 
 // 声明
@@ -80,14 +78,14 @@ ConstDef_list:
 // 基本类型
 BType:
         INT{$$ = createSyntaxTree("BType", 1, $1);}
-    |   FLOAT{$$ = createSyntaxTree("BType", 1, $1);}
-    |   BOOL{$$ = createSyntaxTree("BType", 1, $1);}
     ;
 
 // 常数定义
 ConstDef:
         IDENT '=' ConstInitVal{$$ = createSyntaxTree("ConstDef", 3, $1, $2, $3);}
     |   IDENT '[' ConstExp ']' '=' ConstInitVal{$$ = createSyntaxTree("ConstDef", 6, $1, $2, $3, $4, $5, $6);}
+    |   IDENT '[' ConstExp ']' error{fprintf(stderr, "Error [Syntax] at Line %d, Col %d: Define an array without initialization.\n", yylineno, yycolumn);}
+    |   IDENT '[' error ']' '=' error{fprintf(stderr, "Error [Syntax] at Line %d, Col %d: Array Initialization without space definition.\n", yylineno, yycolumn);}
     ;
 
 // 常量初值
@@ -133,13 +131,14 @@ Exp_list:
 
 // 函数定义
 FuncDef:
-        BType IDENT '(' ')' Block{$$ = createSyntaxTree("FuncDef", 5, $1, $2, $3, $4, $5);}
-    |   BType IDENT '(' FuncFParams ')' Block{$$ = createSyntaxTree("FuncDef", 6, $1, $2, $3, $4, $5, $6);}
+        // BType IDENT '(' ')' Block{$$ = createSyntaxTree("FuncDef", 5, $1, $2, $3, $4, $5);}
+        BType IDENT '(' FuncFParams ')' Block{$$ = createSyntaxTree("FuncDef", 6, $1, $2, $3, $4, $5, $6);}
     ;
 
 // 函数形参表
 FuncFParams: 
         FuncFParam FuncFParam_list{$$ = createSyntaxTree("FuncFParams", 2, $1, $2);}
+    |   {$$ = addNullNode("FuncFParams", yylineno, yycolumn);}
     ;
 
 FuncFParam_list:
@@ -159,7 +158,7 @@ Block:
     ;
     
 BlockItem_list:
-        BlockItem_list BlockItem{$$ = createSyntaxTree("BlockItem_list", 2, $1, $2);}
+    BlockItem_list BlockItem{$$ = createSyntaxTree("BlockItem_list", 2, $1, $2);}
     |   {$$ = addNullNode("BlockItem_list", yylineno, yycolumn);}
     ;
 
@@ -180,7 +179,6 @@ Stmt:
     |   WHILE '(' Cond ')' Stmt{$$ = createSyntaxTree("Stmt", 5, $1, $2, $3, $4, $5);}
     |   BREAK ';'{$$ = createSyntaxTree("Stmt", 2, $1, $2);}
     |   CONTINUE ';'{$$ = createSyntaxTree("Stmt", 2, $1, $2);}
-    |   RETURN ';'{$$ = createSyntaxTree("Stmt", 2, $1, $2);}
     |   RETURN Exp ';'{$$ = createSyntaxTree("Stmt", 3, $1, $2, $3);}
     ;
 
@@ -210,7 +208,6 @@ PrimaryExp:
 // 一元表达式
 UnaryExp:
         PrimaryExp{$$ = createSyntaxTree("UnaryExp", 1, $1);}
-    |   IDENT '(' ')'{$$ = createSyntaxTree("UnaryExp", 3, $1, $2, $3);}
     |   IDENT '(' FuncRParams ')'{$$ = createSyntaxTree("UnaryExp", 4, $1, $2, $3, $4);}
     |   UnaryOp UnaryExp{$$ = createSyntaxTree("UnaryExp", 2, $1, $2);}
     ;
@@ -225,6 +222,7 @@ UnaryOp:
 // 函数实参表
 FuncRParams:
         Exp Exp_list{$$ = createSyntaxTree("FuncRParams", 2, $1, $2);}
+    |   {$$ = addNullNode("FuncRParams", yylineno, yycolumn);}
     ;
 
 // 加减表达式
@@ -278,7 +276,18 @@ ConstExp:
 
 void yyerror(char const *s)
 {
-	fflush(stdout);
-	fprintf(stderr, "Error [Syntax] at Line %d, col %d: %s.\n", yylineno, yycolumn,s);
-    exit(0);
+    if (isNewError){
+        fprintf(stderr, "Error [Syntax] at Line %d, Col %d: %s.\n", yylineno, yycolumn, s);
+    }
+}
+
+int isNewError(int error_lineno){
+    if (last_error_lineno != error_lineno){
+        error_num++;
+        last_error_lineno = error_lineno;
+        return 1;
+    }
+    else{
+        return 0;
+    }
 }
