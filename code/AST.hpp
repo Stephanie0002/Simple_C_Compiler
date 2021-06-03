@@ -93,12 +93,12 @@ public:
   Value *codegen() override;
 };
 
-/// ReturnAST - Expression class for "return a+b"
-class ReturnExprAST : public ExprAST {
+/// ReturnAST - class for "return a+b"
+class ReturnAST : public ExprAST {
   std::unique_ptr<ExprAST> RHS;
 
 public:
-  ReturnExprAST(std::unique_ptr<ExprAST> RHS) : RHS(std::move(RHS)) {}
+  ReturnAST(std::unique_ptr<ExprAST> RHS) : RHS(std::move(RHS)) {}
 
   Value *codegen() override;
 };
@@ -116,14 +116,35 @@ public:
   Value *codegen() override;
 };
 
-/// IfExprAST - Expression class for if/then/else.
-class IfExprAST : public ExprAST {
+/// IfAST - class for if/then/else.
+class IfAST : public ExprAST {
   std::unique_ptr<ExprAST> Cond, Then, Else;
 
 public:
-  IfExprAST(std::unique_ptr<ExprAST> Cond, std::unique_ptr<ExprAST> Then,
+  IfAST(std::unique_ptr<ExprAST> Cond, std::unique_ptr<ExprAST> Then,
             std::unique_ptr<ExprAST> Else)
       : Cond(std::move(Cond)), Then(std::move(Then)), Else(std::move(Else)) {}
+
+  Value *codegen() override;
+};
+
+/// WhileAST - class for while (1) {}
+class WhileAST : public ExprAST {
+  std::unique_ptr<ExprAST> End, Body;
+
+public:
+  WhileAST(std::unique_ptr<ExprAST> End, std::unique_ptr<ExprAST> Body)
+      : End(std::move(End)), Body(std::move(Body)) {}
+
+  Value *codegen() override;
+};
+
+/// GotoAST - class covering break and continue
+class GotoAST : public ExprAST {
+  std::string label;
+
+public:
+  GotoAST(std::string label) : label(label) {}
 
   Value *codegen() override;
 };

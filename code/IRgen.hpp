@@ -36,6 +36,7 @@ using namespace llvm;
 static std::unique_ptr<LLVMContext> TheContext;
 static std::unique_ptr<Module> TheModule;
 static std::unique_ptr<IRBuilder<>> Builder;
+//todo make a stack for this; getDecl
 static std::map<std::string, Value *> NamedValues; // address
 static std::unique_ptr<legacy::FunctionPassManager> TheFPM;
 static std::map<std::string, std::unique_ptr<PrototypeAST>> FunctionProtos;
@@ -146,11 +147,10 @@ Value *VarAssignAST::codegen() {
   return val;
 }
 
-Value *ReturnExprAST::codegen() {
+Value *ReturnAST::codegen() {
   if (Value *RetVal = RHS->codegen()) {
     // Finish off the function.
     Builder->CreateRet(RetVal);
-    return RetVal;
   }
   return nullptr;
 }
@@ -175,7 +175,7 @@ Value *CallExprAST::codegen() {
   return Builder->CreateCall(CalleeF, ArgsV, "calltmp");
 }
 
-Value *IfExprAST::codegen() {
+Value *IfAST::codegen() {
   // TODO CFG simplification is welcome
   Value *CondV = Cond->codegen();
   if (!CondV)
@@ -215,6 +215,59 @@ Value *IfExprAST::codegen() {
   MergeBB->insertInto(TheFunction);
   Builder->SetInsertPoint(MergeBB);
 
+  return nullptr;
+}
+
+Value *WhileAST::codegen() {
+  // get current function
+  Function *TheFunction = Builder->GetInsertBlock()->getParent();
+  
+  // Create basic blocks for -[loop]-loopend-afterloop- control flow.
+  BasicBlock *LoopBB = BasicBlock::Create(*TheContext, "loop", TheFunction);
+  BasicBlock *LoopendBB = BasicBlock::Create(*TheContext, "loopend");
+  BasicBlock *AfterBB = BasicBlock::Create(*TheContext, "afterloop");
+
+  // establish magic labels
+  auto symtab_stash = NamedValues;
+  NamedValues["__WEND__"] = AfterBB;
+  NamedValues["__WHILE__"] = LoopBB;
+  
+  // practice: loopend lies after loop; jump there on entry
+  Builder->CreateBr(LoopendBB);
+  
+  // Fill 'loop' block
+  Builder->SetInsertPoint(LoopBB);
+  if (Body) {
+    Body->codegen();
+  }
+  //todo a natural fall-thru results in unterminated BB
+  Builder->CreateBr(LoopendBB);
+  
+  // Finish 'loopend' block
+  LoopendBB->insertInto(TheFunction);
+  Builder->SetInsertPoint(LoopendBB);
+  Value *EndV = End->codegen();
+  if (!EndV)
+    return nullptr;
+  // while non-zero, loop
+  EndV = Builder->CreateICmpNE(
+      EndV, ConstantInt::get(*TheContext, APInt(32, 0, true)), "whilecond");
+  Builder->CreateCondBr(EndV, LoopBB, AfterBB);
+
+  // Finish "afterloop" block.
+  AfterBB->insertInto(TheFunction);
+  Builder->SetInsertPoint(AfterBB);
+
+  NamedValues = symtab_stash;
+  return nullptr;
+}
+
+Value *GotoAST::codegen() {
+  if (auto *tgtBB = dyn_cast<BasicBlock>(NamedValues[label])) {
+    Builder->CreateBr(tgtBB);
+  } else {
+    assert(false);
+  }
   return nullptr;
 }
 
@@ -296,6 +349,7 @@ Function *FunctionAST::codegen() {
   //TODO FPM?
   // BB not necessarily well-formed due to macro-expansion-like codegen
   for (BasicBlock &BB : *TheFunction) {
+    //todo empty BB should be removed; guide ref to successor
     // append default terminator
     if (!BB.getTerminator()) {
       Builder->SetInsertPoint(&BB);

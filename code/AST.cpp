@@ -158,12 +158,22 @@ std::unique_ptr<ExprAST> get_Stmt_AST(const grammarTree *item) {
         Else = get_Stmt_AST(p);
       }
     }
-    return std::make_unique<IfExprAST>(get_Exp_AST(pCOND->left),
+    return std::make_unique<IfAST>(get_Exp_AST(pCOND->left),
                                        std::move(Then), std::move(Else));
-  }
-  // TODO WHILE BREAK CONT
-  else if (s1->name == "RETURN") {
-    return std::make_unique<ReturnExprAST>(get_Exp_AST(s1->right));
+  } else if (s1->name == "WHILE") {
+    std::unique_ptr<ExprAST> Body;
+    auto pCOND = s1->right, p = pCOND->right;
+    if (p && p->name == "Stmt") {
+      Body = get_Stmt_AST(p);
+    }
+    return std::make_unique<WhileAST>(get_Exp_AST(pCOND->left),
+                                      std::move(Body));
+  } else if (s1->name == "BREAK") {
+    return std::make_unique<GotoAST>("__WEND__");
+  } else if (s1->name == "CONTINUE") {
+    return std::make_unique<GotoAST>("__WHILE__");
+  } else if (s1->name == "RETURN") {
+    return std::make_unique<ReturnAST>(get_Exp_AST(s1->right));
   } else {
     assert(false);
   }

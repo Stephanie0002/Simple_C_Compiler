@@ -7,6 +7,8 @@ target: LLVM IR
 - Func call
 - arithmetic BinExpr
 - return
+- IF: 09 10
+- WHILE: 10 11
 
 # 资源
 
