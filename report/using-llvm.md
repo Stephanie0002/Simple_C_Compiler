@@ -68,3 +68,7 @@ std::move std::unique_ptr
 
 If one does not use a platform, then he must also figure out outputting ELF object file.
 An alternative approach will be `AST -> 拍脑袋 IR -> Target Arch Assembly Text -> Simulator/Assembler`.
+
+```powershell
+code> lli  --dlopen="x64/Debug/libsysy.dll" .\main.ll
+```
