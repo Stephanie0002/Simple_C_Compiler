@@ -1,10 +1,10 @@
-int f1()
-{
-}
+// int f1()
+// {
+// }
 
-int f2(int a, int b[])
-{
-}
+// int f2(int a, int b[])
+// {
+// }
 
 int main()
 {
@@ -19,4 +19,5 @@ int main()
     // int j[2];
     // int k[2] = {4, 5};
     // int l[2] = {6};
+    const int a[2] = {1, 2, 4};
 }

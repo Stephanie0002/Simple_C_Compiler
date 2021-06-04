@@ -15,16 +15,15 @@ mySymbol *createSymbol(string name, mySymbolType type)
 
     default:
         fprintf(stderr, "ERROR [Semantic] Wrong symbol type when creating symbol.\n");
-        return NULL;
+        return nullptr;
     }
     return symbol;
 }
 
 void printDataType(myData *data)
 {
-    if (data == NULL)
+    if (data == nullptr)
     {
-        // printf("(null)\n");
         return;
     }
     string data_type[] = {"BASIC", "ARRAY"};

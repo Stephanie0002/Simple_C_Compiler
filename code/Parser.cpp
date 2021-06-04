@@ -4,17 +4,23 @@
 bool debug = false;
 myHashSet symbol_table;
 
-bool checkProduction(const syntaxTree *parent, int node_num, ...)
+int semantic_error_num = 0;
+int last_semantic_error_lineno = 0;
+
+string cur_func_name;
+vector<mySymbol *> func_field;
+
+bool checkProduction(const grammarTree *parent, int node_num, ...)
 {
 
     va_list valist;
     va_start(valist, node_num);
     bool flag = true;
-    syntaxTree *child = parent->left;
+    grammarTree *child = parent->left;
 
     for (int i = 0; i < node_num; i++)
     {
-        if (child == NULL)
+        if (child == nullptr)
         {
             flag = false;
             break;
@@ -28,66 +34,14 @@ bool checkProduction(const syntaxTree *parent, int node_num, ...)
         child = child->right;
     }
     va_end(valist);
-    if (child != NULL)
+    if (child != nullptr)
     {
         flag = false;
     }
     return flag;
 }
 
-bool checkType(myData *t1, myData *t2)
-{
-    if (t1 == nullptr || t2 == nullptr)
-    {
-        return false;
-    }
-    if (t1->data_type != t2->data_type)
-        return false;
-    if (t1->data_type == BASIC && t2->data_type == BASIC)
-    {
-        return t1->basic == t2->basic;
-    }
-    else if (t1->data_type == ARRAY && t2->data_type == ARRAY)
-    {
-        return checkType(t1->array.elem, t2->array.elem);
-    }
-    else
-    {
-        fprintf(stderr, "Error [Semantic] at Line %d, Col %d: Unknown data type %s and %s.\n", 1, 1, t1->data_type, t2->data_type);
-        return false;
-    }
-}
-
-// 实参 形参
-bool argsCheck(myParam *args, myParam *params, int param_num)
-{
-    myParam *pa = args;
-    myParam *pp = params;
-    for (int i = 0; i < param_num; i++)
-    {
-        if (pa == NULL)
-            return false;
-        if (pp == NULL)
-        {
-            fprintf(stderr, "Error [Semantic] at Line %d, Col %d: Param list does not match param num.\n", 1, 1);
-            return false;
-        }
-        if (!checkType(pa->type, pp->type))
-            return false;
-        pa = pa->next;
-        pp = pp->next;
-    }
-    if (pp != NULL)
-    {
-        fprintf(stderr, "Error [Semantic] at Line %d, Col %d: Param list does not match param num.\n", 1, 1);
-        return false;
-    }
-    if (pa != NULL)
-        return false;
-    return true;
-}
-
-void checkArray(mySymbol *symb)
+void checkArray(mySymbol *symb, int lineno)
 {
     int array_size = symb->type->array.size;
     int cur_size = 0;
@@ -97,15 +51,7 @@ void checkArray(mySymbol *symb)
         it = it->array.elem;
         cur_size++;
     }
-    if (cur_size == 0)
-    {
-        if (symb->symbol_type == CONST)
-        {
-            fprintf(stderr, "Error [Semantic] at Line %d, Col %d: Define an array without initialization.\n", 1, 1);
-            exit(0);
-        }
-    }
-    else if (cur_size < array_size)
+    if (cur_size < array_size)
     {
         int remain = array_size - cur_size;
         while (remain > 0)
@@ -123,17 +69,29 @@ void checkArray(mySymbol *symb)
     }
     else if (cur_size > array_size)
     {
-        fprintf(stderr, "Error [Semantic] at Line %d, Col %d: Array initialization size %d > definition size %d.\n", 1, 1, cur_size, array_size);
-        exit(0);
+        fprintf(stderr, "Error [Semantic] at Line %d: Array %s initialization size %d > definition size %d.\n", lineno, symb->name.c_str(), cur_size, array_size);
     }
 }
 
-void semanticAnalysis(const syntaxTree *root)
+void checkRepeatDef(string name, int lineno)
 {
-    semanticInit(root);
+    // for (int i = 0; i < symbol_table->size; i++)
+    // {
+    //     mySymbolList *p = symbol_table->buckets[i].symbol_list;
+    //     while (p != nullptr)
+    //     {
+    //         mySymbol *s = p->symbol;
+    //     }
+    // }
 }
 
-void semanticInit(const syntaxTree *root)
+int semanticAnalysis(const grammarTree *root)
+{
+    semanticInit(root);
+    return semantic_error_num;
+}
+
+void semanticInit(const grammarTree *root)
 {
     symbol_table = initHashSet(HASH_SIZE);
 
@@ -149,36 +107,14 @@ void semanticInit(const syntaxTree *root)
     }
 }
 
-// void analyseProgram(const syntaxTree *node)
-// {
-//     if (debug)
-//     {
-//         printf("analyse Program:\t");
-//     }
-
-//     if (node == NULL)
-//     {
-//         return;
-//     }
-
-//     if (checkProduction(node, 1, "CompUnit"))
-//     {
-//         analyseCompUnit(node->left);
-//     }
-//     else
-//     {
-//         printProductionError(node, "Program");
-//     }
-// }
-
-void analyseCompUnit(const syntaxTree *node)
+void analyseCompUnit(const grammarTree *node)
 {
     if (debug)
     {
         printf("analyse %d CompUnit:\t", node->id);
     }
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -206,14 +142,14 @@ void analyseCompUnit(const syntaxTree *node)
     }
 }
 
-void analyseDecl(const syntaxTree *node)
+void analyseDecl(const grammarTree *node)
 {
     if (debug)
     {
         printf("analyse %d Decl:\t", node->id);
     }
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -231,14 +167,14 @@ void analyseDecl(const syntaxTree *node)
     }
 }
 
-void analyseConstDecl(const syntaxTree *node)
+void analyseConstDecl(const grammarTree *node)
 {
     if (debug)
     {
         printf("analyse %d ConstDecl:\t", node->id);
     }
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -254,13 +190,13 @@ void analyseConstDecl(const syntaxTree *node)
     }
 }
 
-void analyseConstDef_list(const syntaxTree *node, myData *type)
+void analyseConstDef_list(const grammarTree *node, myData *type)
 {
     if (debug)
     {
         printf("analyse %d ConstDef_list:\t", node->id);
     }
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -278,7 +214,7 @@ void analyseConstDef_list(const syntaxTree *node, myData *type)
     }
 }
 
-myData *analyseBType(const syntaxTree *node)
+myData *analyseBType(const grammarTree *node)
 {
     if (debug)
     {
@@ -289,7 +225,6 @@ myData *analyseBType(const syntaxTree *node)
     if (checkProduction(node, 1, "INT"))
     {
         type->basic = INT;
-        type->is_r_value = false;
     }
     else
     {
@@ -298,27 +233,30 @@ myData *analyseBType(const syntaxTree *node)
     return type;
 }
 
-void analyseConstDef(const syntaxTree *node, myData *type)
+void analyseConstDef(const grammarTree *node, myData *type)
 {
     if (debug)
     {
         printf("analyse %d ConstDef:\t", node->id);
     }
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
     if (checkProduction(node, 3, "IDENT", "=", "ConstInitVal"))
     {
         // Infer: must be const int a = 1;
+        // mySymbol *constant_symbol = createSymbol(cur_func_name + ":" + node->left->content, CONST);
         mySymbol *constant_symbol = createSymbol(node->left->content, CONST);
         constant_symbol->type = type;
         analyseConstInitVal(node->left->right->right, constant_symbol);
 
         constant_symbol->type->data_type = BASIC;
         constant_symbol->type->basic = INT;
+        constant_symbol->type->is_r_value = false;
 
+        // checkRepeatDef(constant_symbol->name, node->left->lineno);
         insert(symbol_table, constant_symbol);
     }
     else if (checkProduction(node, 6, "IDENT", "[", "ConstExp", "]", "=", "ConstInitVal"))
@@ -334,7 +272,7 @@ void analyseConstDef(const syntaxTree *node, myData *type)
         analyseConstExp(node->left->right->right, constant_symbol);
         analyseConstInitVal(node->left->right->right->right->right->right, constant_symbol);
 
-        checkArray(constant_symbol);
+        checkArray(constant_symbol, node->left->lineno);
         insert(symbol_table, constant_symbol);
     }
     else
@@ -343,14 +281,14 @@ void analyseConstDef(const syntaxTree *node, myData *type)
     }
 }
 
-void analyseConstInitVal(const syntaxTree *node, mySymbol *symb)
+void analyseConstInitVal(const grammarTree *node, mySymbol *symb)
 {
     if (debug)
     {
         printf("analyse %d ConstInitVal:\t", node->id);
     }
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -372,13 +310,13 @@ void analyseConstInitVal(const syntaxTree *node, mySymbol *symb)
     }
 }
 
-void analyseConstExp_list(const syntaxTree *node, mySymbol *symb)
+void analyseConstExp_list(const grammarTree *node, mySymbol *symb)
 {
     if (debug)
     {
         printf("analyse %d ConstExp_list:\t", node->id);
     }
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -396,14 +334,14 @@ void analyseConstExp_list(const syntaxTree *node, mySymbol *symb)
     }
 }
 
-void analyseVarDecl(const syntaxTree *node)
+void analyseVarDecl(const grammarTree *node)
 {
     if (debug)
     {
         printf("analyse %d VarDecl:\t", node->id);
     }
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -419,14 +357,14 @@ void analyseVarDecl(const syntaxTree *node)
     }
 }
 
-void analyseVarDef_list(const syntaxTree *node, myData *type)
+void analyseVarDef_list(const grammarTree *node, myData *type)
 {
     if (debug)
     {
         printf("analyse %d VarDef_list:\t", node->id);
     }
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -444,14 +382,14 @@ void analyseVarDef_list(const syntaxTree *node, myData *type)
     }
 }
 
-void analyseVarDef(const syntaxTree *node, myData *type)
+void analyseVarDef(const grammarTree *node, myData *type)
 {
     if (debug)
     {
         printf("analyse %d VarDef:\t", node->id);
     }
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -475,7 +413,7 @@ void analyseVarDef(const syntaxTree *node, myData *type)
 
         analyseConstExp(node->left->right->right, var_symbol);
 
-        checkArray(var_symbol);
+        checkArray(var_symbol, node->left->lineno);
         insert(symbol_table, var_symbol);
     }
     else if (checkProduction(node, 3, "IDENT", "=", "InitVal"))
@@ -502,7 +440,7 @@ void analyseVarDef(const syntaxTree *node, myData *type)
         analyseConstExp(node->left->right->right, var_symbol);
         analyseInitVal(node->left->right->right->right->right->right, var_symbol);
 
-        checkArray(var_symbol);
+        checkArray(var_symbol, node->left->lineno);
         insert(symbol_table, var_symbol);
     }
     else
@@ -511,14 +449,14 @@ void analyseVarDef(const syntaxTree *node, myData *type)
     }
 }
 
-void analyseInitVal(const syntaxTree *node, mySymbol *symb)
+void analyseInitVal(const grammarTree *node, mySymbol *symb)
 {
     if (debug)
     {
         printf("analyse %d InitVal:\t", node->id);
     }
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -540,14 +478,14 @@ void analyseInitVal(const syntaxTree *node, mySymbol *symb)
     }
 }
 
-void analyseExp_list(const syntaxTree *node, mySymbol *symb)
+void analyseExp_list(const grammarTree *node, mySymbol *symb)
 {
     if (debug)
     {
         printf("analyse %d Exp_list:\t", node->id);
     }
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -565,14 +503,14 @@ void analyseExp_list(const syntaxTree *node, mySymbol *symb)
     }
 }
 
-void analyseFuncDef(const syntaxTree *node)
+void analyseFuncDef(const grammarTree *node)
 {
     if (debug)
     {
         printf("analyse %d FuncDef:\t", node->id);
     }
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -613,14 +551,14 @@ void analyseFuncDef(const syntaxTree *node)
     }
 }
 
-void analyseFuncFParams(const syntaxTree *node, mySymbol *symb)
+void analyseFuncFParams(const grammarTree *node, mySymbol *symb)
 {
     if (debug)
     {
         printf("analyse %d FuncFParams:\t", node->id);
     }
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -638,14 +576,14 @@ void analyseFuncFParams(const syntaxTree *node, mySymbol *symb)
     }
 }
 
-void analyseFuncFParam_list(const syntaxTree *node, mySymbol *symb)
+void analyseFuncFParam_list(const grammarTree *node, mySymbol *symb)
 {
     if (debug)
     {
         printf("analyse %d FuncFParam_list:\t", node->id);
     }
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -663,14 +601,14 @@ void analyseFuncFParam_list(const syntaxTree *node, mySymbol *symb)
     }
 }
 
-void analyseFuncFParam(const syntaxTree *node, mySymbol *symb)
+void analyseFuncFParam(const grammarTree *node, mySymbol *symb)
 {
     if (debug)
     {
         printf("analyse %d FuncFParam:\t", node->id);
     }
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -704,14 +642,14 @@ void analyseFuncFParam(const syntaxTree *node, mySymbol *symb)
     }
 }
 
-void analyseBlock(const syntaxTree *node, mySymbol *symb)
+void analyseBlock(const grammarTree *node, mySymbol *symb)
 {
     if (debug)
     {
         printf("analyse %d Block:\t", node->id);
     }
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -725,14 +663,14 @@ void analyseBlock(const syntaxTree *node, mySymbol *symb)
     }
 }
 
-void analyseBlockItem_list(const syntaxTree *node, mySymbol *symb)
+void analyseBlockItem_list(const grammarTree *node, mySymbol *symb)
 {
     if (debug)
     {
         printf("analyse %d BlockItem_list:\t", node->id);
     }
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -750,14 +688,14 @@ void analyseBlockItem_list(const syntaxTree *node, mySymbol *symb)
     }
 }
 
-void analyseBlockItem(const syntaxTree *node, mySymbol *symb)
+void analyseBlockItem(const grammarTree *node, mySymbol *symb)
 {
     if (debug)
     {
         printf("analyse %d BlockItem:\t", node->id);
     }
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -775,14 +713,14 @@ void analyseBlockItem(const syntaxTree *node, mySymbol *symb)
     }
 }
 
-void analyseStmt(const syntaxTree *node, mySymbol *symb)
+void analyseStmt(const grammarTree *node, mySymbol *symb)
 {
     if (debug)
     {
         printf("analyse %d Stmt:\t", node->id);
     }
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -838,14 +776,14 @@ void analyseStmt(const syntaxTree *node, mySymbol *symb)
     }
 }
 
-void analyseExp(const syntaxTree *node, mySymbol *symb)
+void analyseExp(const grammarTree *node, mySymbol *symb)
 {
     if (debug)
     {
         printf("analyse %d Exp:\t", node->id);
     }
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -859,14 +797,14 @@ void analyseExp(const syntaxTree *node, mySymbol *symb)
     }
 }
 
-void analyseCond(const syntaxTree *node, mySymbol *symb)
+void analyseCond(const grammarTree *node, mySymbol *symb)
 {
     if (debug)
     {
         printf("analyse %d Cond:\t", node->id);
     }
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -880,14 +818,14 @@ void analyseCond(const syntaxTree *node, mySymbol *symb)
     }
 }
 
-void analyseLVal(const syntaxTree *node, mySymbol *symb)
+void analyseLVal(const grammarTree *node, mySymbol *symb)
 {
     if (debug)
     {
         printf("analyse %d LVal:\t", node->id);
     }
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -904,14 +842,14 @@ void analyseLVal(const syntaxTree *node, mySymbol *symb)
     }
 }
 
-void analysePrimaryExp(const syntaxTree *node, mySymbol *symb)
+void analysePrimaryExp(const grammarTree *node, mySymbol *symb)
 {
     if (debug)
     {
         printf("analyse %d PrimaryExp:\t", node->id);
     }
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -963,14 +901,14 @@ void analysePrimaryExp(const syntaxTree *node, mySymbol *symb)
     }
 }
 
-void analyseUnaryExp(const syntaxTree *node, mySymbol *symb)
+void analyseUnaryExp(const grammarTree *node, mySymbol *symb)
 {
     if (debug)
     {
         printf("analyse %d UnaryExp:\t", node->id);
     }
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -996,14 +934,14 @@ void analyseUnaryExp(const syntaxTree *node, mySymbol *symb)
     }
 }
 
-void analyseUnaryOp(const syntaxTree *node, mySymbol *symb)
+void analyseUnaryOp(const grammarTree *node, mySymbol *symb)
 {
     if (debug)
     {
         printf("analyse %d UnaryOp:\t", node->id);
     }
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -1022,14 +960,14 @@ void analyseUnaryOp(const syntaxTree *node, mySymbol *symb)
     }
 }
 
-void analyseFuncRParams(const syntaxTree *node, mySymbol *symb)
+void analyseFuncRParams(const grammarTree *node, mySymbol *symb)
 {
     if (debug)
     {
         printf("analyse %d FuncRParams:\t", node->id);
     }
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -1047,13 +985,13 @@ void analyseFuncRParams(const syntaxTree *node, mySymbol *symb)
     }
 }
 
-void analyseAddExp(const syntaxTree *node, mySymbol *symb)
+void analyseAddExp(const grammarTree *node, mySymbol *symb)
 {
     if (debug)
     {
         printf("analyse %d AddExp:\t", node->id);
     }
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -1077,14 +1015,14 @@ void analyseAddExp(const syntaxTree *node, mySymbol *symb)
     }
 }
 
-void analyseMulExp(const syntaxTree *node, mySymbol *symb)
+void analyseMulExp(const grammarTree *node, mySymbol *symb)
 {
     if (debug)
     {
         printf("analyse %d MulExp:\t", node->id);
     }
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -1113,14 +1051,14 @@ void analyseMulExp(const syntaxTree *node, mySymbol *symb)
     }
 }
 
-void analyseRelExp(const syntaxTree *node, mySymbol *symb)
+void analyseRelExp(const grammarTree *node, mySymbol *symb)
 {
     if (debug)
     {
         printf("analyse %d RelExp:\t", node->id);
     }
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -1154,14 +1092,14 @@ void analyseRelExp(const syntaxTree *node, mySymbol *symb)
     }
 }
 
-void analyseEqExp(const syntaxTree *node, mySymbol *symb)
+void analyseEqExp(const grammarTree *node, mySymbol *symb)
 {
     if (debug)
     {
         printf("analyse %d EqExp:\t", node->id);
     }
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -1185,14 +1123,14 @@ void analyseEqExp(const syntaxTree *node, mySymbol *symb)
     }
 }
 
-void analyseLAndExp(const syntaxTree *node, mySymbol *symb)
+void analyseLAndExp(const grammarTree *node, mySymbol *symb)
 {
     if (debug)
     {
         printf("analyse %d LAndExp:\t", node->id);
     }
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -1211,14 +1149,14 @@ void analyseLAndExp(const syntaxTree *node, mySymbol *symb)
     }
 }
 
-void analyseLOrExp(const syntaxTree *node, mySymbol *symb)
+void analyseLOrExp(const grammarTree *node, mySymbol *symb)
 {
     if (debug)
     {
         printf("analyse %d LOrExp:\t", node->id);
     }
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -1237,14 +1175,14 @@ void analyseLOrExp(const syntaxTree *node, mySymbol *symb)
     }
 }
 
-void analyseConstExp(const syntaxTree *node, mySymbol *symb)
+void analyseConstExp(const grammarTree *node, mySymbol *symb)
 {
     if (debug)
     {
         printf("analyse %d ConstExp:\t", node->id);
     }
 
-    if (node == NULL)
+    if (node == nullptr)
     {
         return;
     }
@@ -1263,9 +1201,9 @@ void destroySymbolTable()
     delete symbol_table;
 }
 
-void printProductionError(const syntaxTree *node, const char *msg)
+void printProductionError(const grammarTree *node, const char *msg)
 {
-    syntaxTree *child = node->left;
+    grammarTree *child = node->left;
     if (!child)
     {
         return;
@@ -1287,7 +1225,7 @@ void printSymbolTable(myHashSet symbol_table)
     for (int i = 0; i < symbol_table->size; i++)
     {
         mySymbolList *p = symbol_table->buckets[i].symbol_list;
-        while (p != NULL)
+        while (p != nullptr)
         {
             count++;
             printf("[Symbol %d]\n", count);
@@ -1309,7 +1247,7 @@ void printSymbolTable(myHashSet symbol_table)
                 {
                     printf("\n");
                     int i = 1;
-                    for (myParam *pa = pl; pa != NULL; pa = pa->next)
+                    for (myParam *pa = pl; pa != nullptr; pa = pa->next)
                     {
                         printf("Param: %d\n", i);
                         printDataType(pa->type);
@@ -1350,4 +1288,18 @@ void addNewParamToFunc(myParam *new_param, mySymbol *symb)
         rear = rear->next;
     }
     rear->next = new_param;
+}
+
+int isNewSemanticError(int error_lineno)
+{
+    if (last_semantic_error_lineno != error_lineno)
+    {
+        semantic_error_num++;
+        last_semantic_error_lineno = error_lineno;
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
 }

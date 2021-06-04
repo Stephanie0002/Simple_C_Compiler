@@ -3,16 +3,16 @@
 myHashSet initHashSet(int size)
 {
     myHashSet set = new hashSet_;
-    if (set == NULL)
+    if (set == nullptr)
     {
         fprintf(stderr, "Error [Senmantic] Allocate space failed when initiating hash set.\n");
-        return NULL;
+        return nullptr;
     }
     set->size = size;
     set->buckets = new myBucket[size];
     for (int i = 0; i < size; i++)
     {
-        set->buckets[i].symbol_list = NULL;
+        set->buckets[i].symbol_list = nullptr;
     }
     return set;
 }
@@ -21,13 +21,13 @@ bool contains(myHashSet set, string name, mySymbolType type)
 {
     unsigned int hash = calHash(name);
     mySymbolList *listhead = set->buckets[hash].symbol_list;
-    if (listhead == NULL)
+    if (listhead == nullptr)
     {
         return false;
     }
     else
     {
-        for (mySymbolList *p = listhead; p != NULL; p = p->next)
+        for (mySymbolList *p = listhead; p != nullptr; p = p->next)
         {
             if (p->symbol->name == name)
             {
@@ -55,30 +55,30 @@ void insert(myHashSet set, mySymbol *symbol)
 {
     unsigned int hash = calHash(symbol->name);
     mySymbolList *listhead = set->buckets[hash].symbol_list;
-    if (listhead == NULL)
+    if (listhead == nullptr)
     {
         listhead = new mySymbolList;
         listhead->symbol = symbol;
-        listhead->next = NULL;
+        listhead->next = nullptr;
         set->buckets[hash].symbol_list = listhead;
     }
     else
     {
         mySymbolList *p = listhead;
-        for (; p->next != NULL; p = p->next)
+        for (; p->next != nullptr; p = p->next)
         {
-            if (p->symbol->name == symbol->name && p->symbol->symbol_type == symbol->symbol_type)
+            if (p->symbol->name == symbol->name)
             {
-                fprintf(stderr, "ERROR [Semantic] Symbol is already in the symbol table.\n");
+                // return false;
             }
         }
         if (p->symbol->name == symbol->name && p->symbol->symbol_type == symbol->symbol_type)
         {
-            fprintf(stderr, "ERROR [Semantic] Symbol is already in the symbol table.\n");
+            // return false;
         }
         mySymbolList *newSymbol = new mySymbolList;
         newSymbol->symbol = symbol;
-        newSymbol->next = NULL;
+        newSymbol->next = nullptr;
         p->next = newSymbol;
     }
 }
@@ -87,20 +87,20 @@ mySymbol *get(myHashSet set, string name, mySymbolType type)
 {
     unsigned int hash = calHash(name);
     mySymbolList *listhead = set->buckets[hash].symbol_list;
-    if (listhead == NULL)
+    if (listhead == nullptr)
     {
-        return NULL;
+        return nullptr;
     }
     else
     {
-        for (mySymbolList *p = listhead; p != NULL; p = p->next)
+        for (mySymbolList *p = listhead; p != nullptr; p = p->next)
         {
             if (p->symbol->name == name && p->symbol->symbol_type == type)
             {
                 return p->symbol;
             }
         }
-        return NULL;
+        return nullptr;
     }
 }
 

@@ -2,7 +2,7 @@
 #include <cstdlib>
 #include <string>
 #include <algorithm>
-#include "syntaxTree.h"
+#include "grammarTree.h"
 #include "Parser.h"
 
 using namespace std;
@@ -12,7 +12,9 @@ extern void yyrestart(FILE *input_file);
 
 extern int error_num;
 extern int last_error_lineno;
-extern struct syntaxTree *root;
+extern int yylineno;
+extern int yycolumn;
+extern struct grammarTree *root;
 
 int main(int argc, char **argv)
 {
@@ -22,7 +24,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    bool verbose = false; // default is false
+    bool verbose = false;
     string tmp = argv[1];
     transform(tmp.begin(), tmp.end(), tmp.begin(), ::tolower);
     if (tmp == "true")
@@ -58,10 +60,12 @@ int main(int argc, char **argv)
 
         if (error_num == 0)
         {
-            syntaxTree *syntax = root;
-            syntaxTree *semantic = root;
+            grammarTree *syntax = root;
+            grammarTree *semantic = root;
             nodePrint(syntax, filename, verbose);
-            semanticAnalysis(semantic);
+            int semantic_error_num = semanticAnalysis(semantic);
+
+            error_num += semantic_error_num;
 
             delete root;
             destroySymbolTable();
@@ -74,6 +78,8 @@ int main(int argc, char **argv)
                 fprintf(stderr, "1 error occured when compiling.\n");
             error_num = 0;
             last_error_lineno = 0;
+            yylineno = 1;
+            yycolumn = 1;
         }
 
         yylineno = 1;

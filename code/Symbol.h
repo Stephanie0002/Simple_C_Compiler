@@ -58,6 +58,7 @@ struct Param_
 {
     myData *type;  // 参数的类型
     myParam *next; // 下一个参数
+    string para_name;
 };
 
 struct Func_
@@ -72,6 +73,12 @@ struct SymbolList_
     mySymbol *symbol;
     mySymbolList *next;
 };
+
+typedef struct Opd_
+{
+    myData *data;
+    string name;
+} myOpd;
 
 mySymbol *createSymbol(string name, mySymbolType type);
 void printDataType(myData *data);
