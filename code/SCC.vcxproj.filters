@@ -33,6 +33,18 @@
     <ClCompile Include="y.tab.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="hashSet.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Parser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Symbol.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="grammarTree.h">
@@ -51,6 +63,13 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="KaleidoscopeJIT.h">
+    <ClInclude Include="hashSet.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Parser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Symbol.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
