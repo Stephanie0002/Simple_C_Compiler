@@ -130,6 +130,7 @@
     <ClInclude Include="AST.hpp" />
     <ClInclude Include="grammarTree.h" />
     <ClInclude Include="IRgen.hpp" />
+    <ClInclude Include="KaleidoscopeJIT.h" />
     <ClInclude Include="utils.h" />
     <ClInclude Include="y.tab.h" />
   </ItemGroup>

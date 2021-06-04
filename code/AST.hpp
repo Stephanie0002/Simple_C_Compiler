@@ -149,7 +149,7 @@ public:
 };
 
 /* VarDefAST - Expression class for "int a = 1"
- * The value is not usable, but we leave it here.
+ * The return value is not usable.
  */
 class VarDefAST : public ExprAST {
 protected:

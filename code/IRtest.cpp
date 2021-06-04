@@ -8,32 +8,9 @@
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Target/TargetMachine.h"
 #include <memory>
+#include <system_error>
 
 using namespace llvm;
-
-#ifdef _WIN32
-#define DLLEXPORT __declspec(dllexport)
-#else
-#define DLLEXPORT
-#endif
-
-// todo import lib
-extern "C" DLLEXPORT int getint() {
-  int rv;
-  scanf("%d", &rv);
-  return rv;
-}
-
-/// putchari - putchar that takes a int and returns 0.
-extern "C" DLLEXPORT int putchari(int X) {
-  fputc((char)X, stderr);
-  return 0;
-}
-
-extern "C" DLLEXPORT int putint(int i) {
-  fprintf(stderr, "%d", i);
-  return 0;
-}
 
 // drv
 static void InitializeContext() {
@@ -84,6 +61,9 @@ int IR_entry(const grammarTree *root) {
   }
   // Print out all of the generated code.
   TheModule->print(llvm::errs(), nullptr);
+  // dump to file
+  std::error_code ec;
+  TheModule->print(raw_fd_ostream("main.ll", ec), nullptr);
 
   // target obj gen
   // Create a ResourceTracker to track JIT'd memory allocated
