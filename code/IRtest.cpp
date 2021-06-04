@@ -5,6 +5,8 @@
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Scalar/GVN.h"
 #include "llvm/Transforms/Utils.h"
+#include "llvm/Support/TargetSelect.h"
+#include "llvm/Target/TargetMachine.h"
 #include <memory>
 
 using namespace llvm;
@@ -35,9 +37,17 @@ extern "C" DLLEXPORT int putint(int i) {
 
 // drv
 static void InitializeContext() {
+  // JIT
+  InitializeNativeTarget();
+  InitializeNativeTargetAsmPrinter();
+  InitializeNativeTargetAsmParser();
+  TheJIT = ExitOnErr(KaleidoscopeJIT::Create());
+
   TheContext = std::make_unique<LLVMContext>();
   // Make the module, which holds all the code.
   TheModule = std::make_unique<Module>("SysY--", *TheContext);
+  // Configure DL according to target
+  TheModule->setDataLayout(TheJIT->getDataLayout());
   // Create a new builder for the module.
   Builder = std::make_unique<IRBuilder<>>(*TheContext);
   // Create a new pass manager attached to it.
@@ -61,8 +71,7 @@ int IR_entry(const grammarTree *root) {
   // return 0;
   InitializeContext();
 
-  // Run the main "interpreter loop" now.
-//   MainLoop();
+  // IR codegen the CompUnit
   for (auto &&pAST : proc_CompUnit(root)) {
     if (auto ppExprAST = std::get_if<std::unique_ptr<ExprAST>>(&pAST)) {
       // ExprAST -known info-> GlblVarDefAST
@@ -73,8 +82,20 @@ int IR_entry(const grammarTree *root) {
       std::get<std::unique_ptr<FunctionAST>>(pAST)->codegen();
     }
   }
-
   // Print out all of the generated code.
   TheModule->print(llvm::errs(), nullptr);
+
+  // target obj gen
+  // Create a ResourceTracker to track JIT'd memory allocated
+  auto RT = TheJIT->getMainJITDylib().createResourceTracker();
+  auto TSM = ThreadSafeModule(std::move(TheModule), std::move(TheContext));
+  ExitOnErr(TheJIT->addModule(std::move(TSM), RT));
+
+  // locate target obj entry, cast to func ptr and call it
+  auto ExprSymbol = ExitOnErr(TheJIT->lookup("main"));
+  int (*FP)() = (int (*)())(intptr_t)ExprSymbol.getAddress();
+  fprintf(stderr, "Target main() exited on %d\n", FP());
+  ExitOnErr(RT->remove());
+
   return 0;
 }
