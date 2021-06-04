@@ -2,6 +2,7 @@
 #define IRGEN_H
 
 #include "AST.hpp"
+#include "KaleidoscopeJIT.h"
 #include "llvm/ADT/APInt.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/IR/BasicBlock.h"
@@ -28,6 +29,7 @@
 #include <vector>
 
 using namespace llvm;
+using namespace llvm::orc;
 
 //===----------------------------------------------------------------------===//
 // Code Generation
@@ -39,6 +41,7 @@ static std::unique_ptr<IRBuilder<>> Builder;
 //todo make a stack for this; getDecl
 static std::map<std::string, Value *> NamedValues; // address
 static std::unique_ptr<legacy::FunctionPassManager> TheFPM;
+static std::unique_ptr<KaleidoscopeJIT> TheJIT;
 static std::map<std::string, std::unique_ptr<PrototypeAST>> FunctionProtos;
 static ExitOnError ExitOnErr;
 
@@ -146,9 +149,9 @@ Value *BinaryExprAST::codegen() {
       // trans possible i32 xhs (from e.g. AddExp) to i1
       Value *CondV = Builder->CreateICmpNE(L, Builder->getInt32(0), "short");
 
-      if (Op == "&&") {
+      if (Op == "AND_OP") {
         Builder->CreateCondBr(CondV, ThenBB, MergeBB);
-      } else if (Op == "||") {
+      } else if (Op == "OR_OP") {
         Builder->CreateCondBr(CondV, MergeBB, ThenBB);
       } else {
         assert(false);
@@ -187,11 +190,15 @@ Value *ReturnAST::codegen() {
   return nullptr;
 }
 
+Function *GenExtern(const std::string &Callee,
+                    const std::vector<std::unique_ptr<ExprAST>> &Args);
+
 Value *CallExprAST::codegen() {
   // Look up the name in the global module table.
   Function *CalleeF = getFunction(Callee);
   if (!CalleeF)
-    return LogErrorV("Unknown function referenced");
+    // ad-hoc ref inserted into TheModule; JIT session error if not in lib
+    CalleeF = GenExtern(Callee, Args);
 
   // If argument mismatch error.
   if (CalleeF->arg_size() != Args.size())
@@ -313,18 +320,30 @@ Value* VarDefAST::codegen() {
       Builder->CreateStore(iv, alloc);
     }
   }
-  return nullptr; //fuckoff
+  return nullptr;
 }
 
 Value *GlblVarDefAST::codegen() {
-  Constant *rv = nullptr;
   for (auto &&p : VarNames) {
     // todo const init
-    rv = TheModule->getOrInsertGlobal(p.first, Builder->getInt32Ty());
+    // using zero initializer
+    auto gv = new GlobalVariable(*TheModule, Builder->getInt32Ty(), false,
+                                 GlobalVariable::CommonLinkage,
+                                 Builder->getInt32(0), p.first);
     // Record in the NamedValues map.
-    NamedValues[p.first] = rv;
+    NamedValues[p.first] = gv;
   }
-  return rv;
+  return nullptr;
+}
+
+Function *GenExtern(const std::string &Callee,
+                    const std::vector<std::unique_ptr<ExprAST>> &Args) {
+  auto proto = std::make_unique<PrototypeAST>(
+      Callee, std::vector<std::string>(Args.size()));
+  // register in 2 tbl
+  Function *F = proto->codegen();
+  FunctionProtos[proto->getName()] = std::move(proto);
+  return F;
 }
 
 Function *PrototypeAST::codegen() {

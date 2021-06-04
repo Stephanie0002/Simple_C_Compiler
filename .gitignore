@@ -1,4 +1,5 @@
 # env config
+.vs
 **/.vscode
 **/.idea
 **/venv/
