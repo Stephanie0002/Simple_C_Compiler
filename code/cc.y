@@ -9,23 +9,30 @@
 using namespace std;
 
 extern char *yytext;
-extern int yycolumn;
 extern FILE *yyin;
 extern FILE *yyout;
-grammarTree *root;
+
+extern int yycolumn;
 extern int yylineno;
+
+grammarTree *root = NULL;
+
+int error_num = 0;
+int last_error_lineno = 0;
 
 int yylex(void);
 void yyerror(const char *);
+extern void yyrestart(FILE *input_file);
 extern int IR_entry(const grammarTree *root);
+int isNewError(int error_lineno);
 %}
 
 %union {
     struct grammarTree* tree;
 }
 
-%token <tree> NUMBER CONST IDENT
-%token <tree> INT
+%token <tree> NUMBER CONST IDENT WrongNumberFormat
+%token <tree> INT UNDESIGNED
 %token <tree> IF ELSE WHILE BREAK CONTINUE RETURN
 %token <tree> '+' '-' '*' '/' '%' '<' '>' '!' '='
 %token <tree> LE_OP GE_OP EQ_OP NE_OP AND_OP OR_OP 
@@ -39,6 +46,8 @@ extern int IR_entry(const grammarTree *root);
 %type <tree> Block BlockItem
 %type <tree> ConstDef_list ConstExp_list VarDef_list Exp_list FuncFParam_list BlockItem_list
 %type <tree> Stmt Cond
+
+%nonassoc error
 
 %nonassoc LOWER_THAN_ELSE
 %nonassoc ELSE
@@ -72,12 +81,15 @@ ConstDef_list:
 // 基本类型
 BType:
         INT{$$ = createTree("BType", 1, $1);}
+    |   UNDESIGNED{}
     ;
 
 // 常数定义
 ConstDef:
         IDENT '=' ConstInitVal{$$ = createTree("ConstDef", 3, $1, $2, $3);}
     |   IDENT '[' ConstExp ']' '=' ConstInitVal{$$ = createTree("ConstDef", 6, $1, $2, $3, $4, $5, $6);}
+    |   IDENT '[' ConstExp ']' error{fprintf(stderr, "Error [Syntax] at Line %d, Col %d: Define an array without initialization.\n", yylineno, yycolumn);}
+    |   IDENT '[' error ']' '=' error{fprintf(stderr, "Error [Syntax] at Line %d, Col %d: Array Initialization without space definition.\n", yylineno, yycolumn);}
     ;
 
 // 常量初值
@@ -107,6 +119,7 @@ VarDef:
     |   IDENT '[' ConstExp ']'{$$ = createTree("VarDef", 4, $1, $2, $3, $4);}
     |   IDENT '=' InitVal{$$ = createTree("VarDef", 3, $1, $2, $3);}
     |   IDENT '[' ConstExp ']' '=' InitVal{$$ = createTree("VarDef", 6, $1, $2, $3, $4, $5, $6);}
+    |   IDENT '[' ConstExp ']' error {if (isNewError(yylineno)) fprintf(stderr, "Error [Syntax] at Line %d, Col %d: Syntax error \'%s\' when define an array.\n", yylineno, yycolumn, yytext);}
     ;
 
 // 变量初值
@@ -171,6 +184,7 @@ Stmt:
     |   BREAK ';'{$$ = createTree("Stmt", 2, $1, $2);}
     |   CONTINUE ';'{$$ = createTree("Stmt", 2, $1, $2);}
     |   RETURN Exp ';'{$$ = createTree("Stmt", 3, $1, $2, $3);}
+    |   LVal '=' Exp error{if (isNewError(yylineno)) fprintf(stderr, "Error [Syntax] at Line %d, Col %d: Missing \';\'.\n", yylineno, yycolumn);}
     ;
 
 // 表达式
@@ -194,6 +208,7 @@ PrimaryExp:
         '(' Exp ')'{$$ = createTree("PrimaryExp", 3, $1, $2, $3);}
     |   LVal{$$ = createTree("PrimaryExp", 1, $1);}
     |   NUMBER{$$ = createTree("PrimaryExp", 1, $1);}
+    |   WrongNumberFormat{}
     ;
 
 // 一元表达式
@@ -269,48 +284,86 @@ ConstExp:
 /* allows for printing of an error message */
 void yyerror(char const *s)
 {
-	fflush(stdout);
-	printf("\nRow No.%d, Col No.%d: [Yacc]%s\n", yylineno, yycolumn, s);
-    exit(0);
+    // if (isNewError(yylineno)){
+    //     fprintf(stderr, "Error [Syntax] at Line %d, Col %d: %s.\n", yylineno, yycolumn, s);
+    // }
+}
+
+int isNewError(int error_lineno){
+    if (last_error_lineno != error_lineno){
+        error_num++;
+        last_error_lineno = error_lineno;
+        return 1;
+    }
+    else{
+        return 0;
+    }
 }
 
 int main(int argc, char* argv[]) {
     /* Read test file from command line */
     bool verbose = false;
     string tmp = argv[1];
+    transform(tmp.begin(), tmp.end(), tmp.begin(), ::tolower);
     if (tmp == "true"){
         verbose = true;
     }
     
     int start = 1;
     if (tmp != "true" || tmp != "false"){
+        if (argc == 2)
+        {
+            fprintf(stderr, "Error [Others]: No input files.");
+            return 1;
+        }
         start = 2;
     }
-    
+    /*
     if (verbose){
         for (int i=1; i<argc; i++){
             cout << "Argument " << i << " is " << argv[i] << endl;
         }
     }
-
+    */
     for (int i=start; i<argc; i++){
         string filename = argv[i];
-        yyin = fopen(argv[i], "r");
-        
-        printf("\nThe source code of %s is:\n ", argv[i]);
+        FILE *file = fopen(argv[i], "r");
+        if (!file)
+        {
+            perror(argv[i]);
+            return 1;
+        }
+        printf("\n---Compile file %s:---\n", filename.c_str());
+        yyrestart(file);
         yyparse();
 
-        grammarTree* tmp = root;
-        // if (verbose)
-        //     outputTree(root, 0);
-        root->tailor();
-        floorPrint(root, filename, verbose);
-        nodePrint(tmp, filename, verbose);
+        if (error_num == 0)
+        {
+            grammarTree *syntax = root;
+            grammarTree *semantic = root;
+            grammarTree* tmp = root;
+            root->tailor();
+            floorPrint(root, filename, verbose);
+            nodePrint(tmp, filename, verbose);
+            //semanticAnalysis(semantic);
+            
+            printf("\n");
+            IR_entry(root);
+            delete root;
+            
+            //destroySymbolTable();
+        }
+        else
+        {
+            if (error_num != 1)
+                fprintf(stderr, "%d errors occured when compiling.\n", error_num);
+            else
+                fprintf(stderr, "1 error occured when compiling.\n");
+            error_num = 0;
+            last_error_lineno = 0;
+        }
 
-        fclose(yyin);
-        printf("\n");
-        IR_entry(root);
-        delete root;
+        fclose(file);
     }
     return 0;
 }
