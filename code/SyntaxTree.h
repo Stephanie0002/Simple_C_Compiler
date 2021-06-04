@@ -19,7 +19,7 @@ struct syntaxTree
     string name;
     string content;
     int lineno;
-    int id = -1;
+    int id;
     struct syntaxTree *left;
     struct syntaxTree *right;
     // prep for tailor; classified on Nb_opr

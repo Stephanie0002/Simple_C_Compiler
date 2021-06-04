@@ -12,6 +12,7 @@ syntaxTree *createSyntaxTree(string name, int num, ...)
     root->right = NULL;
     root->content = "";
     root->name = name;
+    root->id = -1;
 
     va_list valist;
     va_start(valist, num);
@@ -51,6 +52,7 @@ syntaxTree *createSyntaxTree(string name, int num, ...)
     {
         int lineno = va_arg(valist, int);
         root->lineno = lineno;
+        root->id = -1;
 
         if (root->name == "NUMBER")
         {
@@ -71,9 +73,7 @@ syntaxTree *createSyntaxTree(string name, int num, ...)
         {
             root->content = yytext;
         }
-        // printf("add node %s:%s", root->name.c_str(), root->content.c_str());
     }
-    // printf("\n");
     return root;
 }
 
@@ -98,12 +98,14 @@ syntaxTree *addNullNode(string name, int lineno, int col)
     tmp->content = "Null";
     tmp->name = "Null";
     tmp->lineno = lineno;
+    tmp->id = -1;
 
     root->left = tmp;
     root->right = NULL;
     root->name = name;
     root->content = "";
     root->lineno = lineno;
+    tmp->id = -1;
 
     return root;
 }
@@ -149,7 +151,7 @@ void nodePrint(syntaxTree *root, string filename, bool verbose)
         syntaxTree *tmp = root;
         floorTraverse(tmp);
     }
-    // verbose = true;
+    verbose = true;
     if (verbose)
     {
         printf("\n");
