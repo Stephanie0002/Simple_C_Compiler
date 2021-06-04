@@ -11,3 +11,6 @@
 **/viewTree/*tree.txt
 **/viewTree/*tree.gv
 **/viewTree/*tree.gv.png
+
+# ir
+*.ll
