@@ -19,5 +19,5 @@ int main()
     // int j[2];
     // int k[2] = {4, 5};
     // int l[2] = {6};
-    const int a[2] = {1, 2, 4};
+    // int a[2];
 }

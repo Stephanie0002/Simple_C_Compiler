@@ -10,11 +10,19 @@
 using namespace std;
 
 bool checkProduction(const grammarTree *parent, int node_num, ...);
-void checkRepeatDef(string name, int lineno);
+bool checkRepeatFuncDef(mySymbol *symb, int lineno);
+void checkRepeatVarDef(mySymbol *symb, int lineno);
 void checkArray(mySymbol *symb, int lineno);
+void checkExp(int lineno);
+void clearExp();
+void checkFuncRet(int lineno);
+void checkFuncCall(string func_name, int lineno);
+void checkNotDef(string name, int lineno, string type);
+void getDATA(myData *DATA, string name);
 
 void addNewEleToArray(myData *new_ele, mySymbol *symb);
-void addNewParamToFunc(myParam *new_param, mySymbol *symb);
+void addNewParamToParamList(myParam *new_param, myParam *param_list);
+void getEleFromArray(int lineno);
 
 int semanticAnalysis(const grammarTree *root);
 void semanticInit(const grammarTree *root);

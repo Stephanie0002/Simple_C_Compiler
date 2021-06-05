@@ -28,7 +28,7 @@ struct grammarTree
                           NA };
     Type_t type()
     {
-        if (string(",;none").find(name) != string::npos)
+        if (string(",;Null").find(name) != string::npos)
         {
             return Garbage;
         }

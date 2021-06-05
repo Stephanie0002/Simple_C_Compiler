@@ -88,8 +88,8 @@ grammarTree *addNullNode(string name, int lineno, int col)
 
     tmp->left = nullptr;
     tmp->right = nullptr;
-    tmp->content = "Null";
-    tmp->name = "Null";
+    tmp->content = "none";
+    tmp->name = "none";
     tmp->lineno = lineno;
     tmp->id = -1;
 
@@ -144,7 +144,7 @@ void nodePrint(grammarTree *root, string filename, bool verbose)
         grammarTree *tmp = root;
         floorTraverse(tmp);
     }
-    // verbose = true;
+    verbose = true;
     if (verbose)
     {
         printf("\n");

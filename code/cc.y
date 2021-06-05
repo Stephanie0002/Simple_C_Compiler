@@ -181,8 +181,7 @@ Stmt:
     |   BREAK ';'{$$ = createGrammarTree("Stmt", 2, $1, $2);}
     |   CONTINUE ';'{$$ = createGrammarTree("Stmt", 2, $1, $2);}
     |   RETURN Exp ';'{$$ = createGrammarTree("Stmt", 3, $1, $2, $3);}
-    |   LVal '=' Exp error{if (isNewError(yylineno)) fprintf(stderr, "Error [Syntax] at Line %d, Col %d: Missing \';\'.\n", yylineno, yycolumn);}
-    
+    |   Exp '=' LVal{if (isNewError(yylineno)) fprintf(stderr, "Error [Syntax] at Line %d, Col %d: Expression's left side must be a changeable value.\n", yylineno, yycolumn);}
     ;
 
 // 表达式

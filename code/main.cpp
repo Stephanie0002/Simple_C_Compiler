@@ -77,7 +77,7 @@ int main(int argc, char **argv)
             else
                 fprintf(stderr, "1 error occured when compiling.\n");
             error_num = 0;
-            last_error_lineno = 0;
+            last_error_lineno = 1;
             yylineno = 1;
             yycolumn = 1;
         }
