@@ -1,65 +1,35 @@
 #include "grammarTree.h"
-#include "utils.h"
 
-grammarTree *createTree(string name, int num, ...)
+extern char *yytext;
+
+grammarTree *createGrammarTree(string name, int num, ...)
 {
-    if (num == -1)
-    {
-        va_list valist;
-        va_start(valist, 0);
-        int lineno = va_arg(valist, int);
-        grammarTree *root = new grammarTree();
-        if (!root)
-        {
-            printf("Out of space \n");
-            exit(0);
-        }
-        grammarTree *temp = new grammarTree();
-        if (!temp)
-        {
-            printf("Out of space \n");
-            exit(0);
-        }
-        temp->left = NULL;
-        temp->right = NULL;
-        temp->content = "none";
-        temp->name = "none";
-        temp->lineno = lineno;
-
-        root->left = temp;
-        root->right = NULL;
-        root->content = "none";
-        root->name = name;
-        root->lineno = lineno;
-
-        return root;
-    }
-
     grammarTree *root = new grammarTree();
     if (!root)
     {
-        printf("Out of space \n");
+        fprintf(stderr, "Error [Syntax] Syntax tree out of space when creating it.\n");
         exit(0);
     }
-    root->left = NULL;
-    root->right = NULL;
+    root->left = nullptr;
+    root->right = nullptr;
     root->content = "";
     root->name = name;
+    root->id = -1;
 
     va_list valist;
     va_start(valist, num);
-
-    grammarTree *temp = NULL;
+    grammarTree *tmp = nullptr;
     if (num > 0)
     {
-        temp = va_arg(valist, grammarTree *);
-        root->left = temp;
-        root->lineno = temp->lineno;
+        tmp = va_arg(valist, grammarTree *);
+        root->left = tmp;
+        root->lineno = tmp->lineno;
+
         if (num == 1)
         {
-            if (temp->content.size() > 0)
+            if (tmp->content.size() > 0)
             {
-                root->content = temp->content;
+                root->content = tmp->content;
             }
             else
                 root->content = "";
@@ -68,8 +38,8 @@ grammarTree *createTree(string name, int num, ...)
         {
             for (int i = 1; i < num; i++)
             {
-                temp->right = va_arg(valist, grammarTree *);
-                temp = temp->right;
+                tmp->right = va_arg(valist, grammarTree *);
+                tmp = tmp->right;
             }
         }
     }
@@ -77,10 +47,12 @@ grammarTree *createTree(string name, int num, ...)
     {
         int lineno = va_arg(valist, int);
         root->lineno = lineno;
+        root->id = -1;
+
         if (root->name == "NUMBER")
         {
             int value;
-            if (strlen(yytext) > 1 && yytext[0] == '0' && yytext[1] != 'x')
+            if (strlen(yytext) > 1 && yytext[0] == '0' && (yytext[1] != 'x' || yytext[1] != 'X'))
             {
                 sscanf(yytext, "%o", &value); //8进制整数
             }
@@ -91,7 +63,6 @@ grammarTree *createTree(string name, int num, ...)
             else
                 value = atoi(yytext); //10进制整数
             root->content = int2str(value);
-            //printf("%d",value);
         }
         else
         {
@@ -101,33 +72,58 @@ grammarTree *createTree(string name, int num, ...)
     return root;
 }
 
-void floorPrint(grammarTree *root, string filename, bool verbose)
+grammarTree *addNullNode(string name, int lineno, int col)
 {
-    cout << endl;
-    if (root == NULL)
+	grammarTree *root = new grammarTree;
+	if (!root)
+	{
+		fprintf(stderr, "Error [Syntax] Syntax tree out of space when adding ε node.\n");
+		exit(0);
+	}
+
+	grammarTree *tmp = new grammarTree;
+	if (!tmp)
+	{
+		fprintf(stderr, "Error [Syntax] Syntax tree out of space when adding ε node.\n");
+		exit(0);
+	}
+
+	tmp->left = nullptr;
+	tmp->right = nullptr;
+	tmp->content = "none";
+	tmp->name = "none";
+	tmp->lineno = lineno;
+	tmp->id = -1;
+
+	root->left = tmp;
+	root->right = nullptr;
+	root->name = name;
+	root->content = "";
+	root->lineno = lineno;
+	tmp->id = -1;
+
+	return root;
+}
+
+void floorTraverse(grammarTree *root)
+{
+    if (root == nullptr)
+    {
         return;
-    filename = "viewTree/" + filename + "_floor_tree.txt";
-    ofstream outfile(filename);
+    }
     queue<grammarTree *> q;
     q.push(root);
     int id = 1;
-    string tmp;
     while (!q.empty())
     {
         int currentSize = q.size();
-        vector<vector<string>> tempVec;
         for (int j = 0; j < currentSize; j++)
         {
             grammarTree *p = q.front();
             q.pop();
 
-            tmp = int2str(id);
-            vector<string> a = {tmp, p->name};
-            id = str2int(tmp);
             p->id = id;
             id++;
-
-            tempVec.push_back(a);
 
             grammarTree *tmp = p->left;
             if (tmp)
@@ -140,23 +136,22 @@ void floorPrint(grammarTree *root, string filename, bool verbose)
                 }
             }
         }
-        //  Floor print
-        for (int i = 0; i < tempVec.size(); i++)
-        {
-            outfile << tempVec[i][0] << " " << tempVec[i][1] << " ";
-            if (verbose)
-                cout << tempVec[i][0] << " " << tempVec[i][1] << " ";
-        }
-        outfile << endl;
-        if (verbose)
-            cout << endl;
     }
 }
 
 void nodePrint(grammarTree *root, string filename, bool verbose)
 {
-    cout << endl;
-    if (root == NULL)
+    if (root->id == -1)
+    {
+        grammarTree *tmp = root;
+        floorTraverse(tmp);
+    }
+    // verbose = true;
+    if (verbose)
+    {
+        printf("\n");
+    }
+    if (root == nullptr)
         return;
     // remove dir/ preceding
     for (auto i = filename.size(); i != 0; i--)
@@ -186,11 +181,11 @@ void nodePrint(grammarTree *root, string filename, bool verbose)
                 {
                     if (tmp->name == "INT" || tmp->name == "IDENT" || tmp->name == "NUMBER")
                     {
-                        cout << p->id << " " << p->name << " " << tmp->id << " " << tmp->name << ":" << tmp->content << endl;
+                        printf("%d %s %d %s:%s\n", p->id, p->name.c_str(), tmp->id, tmp->name.c_str(), tmp->content.c_str());
                     }
                     else
                     {
-                        cout << p->id << " " << p->name << " " << tmp->id << " " << tmp->name << endl;
+                        printf("%d %s %d %s\n", p->id, p->name.c_str(), tmp->id, tmp->name.c_str());
                     }
                 }
                 if (tmp->name == "INT" || tmp->name == "IDENT" || tmp->name == "NUMBER")
@@ -209,11 +204,11 @@ void nodePrint(grammarTree *root, string filename, bool verbose)
                     {
                         if (tmp->right->name == "INT" || tmp->right->name == "IDENT" || tmp->right->name == "NUMBER")
                         {
-                            cout << p->id << " " << p->name << " " << tmp->right->id << " " << tmp->right->name << ":" << tmp->right->content << endl;
+                            printf("%d %s %d %s:%s\n", p->id, p->name.c_str(), tmp->right->id, tmp->right->name.c_str(), tmp->right->content.c_str());
                         }
                         else
                         {
-                            cout << p->id << " " << p->name << " " << tmp->right->id << " " << tmp->right->name << endl;
+                            printf("%d %s %d %s\n", p->id, p->name.c_str(), tmp->right->id, tmp->right->name.c_str());
                         }
                     }
                     if (tmp->right->name == "INT" || tmp->right->name == "IDENT" || tmp->right->name == "NUMBER")
@@ -233,50 +228,14 @@ void nodePrint(grammarTree *root, string filename, bool verbose)
     }
 }
 
-void outputTree(grammarTree *root, int level)
-{
-    if (root != NULL)
-    {
-        string Name = root->name;
-        if (root->lineno != -1)
-        {
-            for (int i = 0; i < level; ++i)
-            {
-                cout << ". ";
-            }
-            cout << root->name;
-
-            if (root->name == "INT")
-            {
-                cout << ":" << root->content;
-            }
-            else if (root->name == "NUMBER")
-            {
-                cout << ":" << root->content << " ";
-            }
-            else if (root->name == "IDENT")
-            {
-                cout << ":" << root->content << " ";
-            }
-            else
-            {
-                cout << " <" << root->lineno << ">";
-            }
-            cout << endl;
-        }
-        outputTree(root->left, level + 1);
-        outputTree(root->right, level);
-    }
-}
-
 // tailor_inner() + folding "CompUnit"
 void grammarTree::tailor()
 {
-    tailor_inner();
-    while (left->name == "CompUnit")
-    {
-        left = left->fold_lchain();
-    }
+	tailor_inner();
+	while (left->name == "CompUnit")
+	{
+		left = left->fold_lchain();
+	}
 }
 
 /* remove meaningless tokens;
@@ -284,89 +243,89 @@ void grammarTree::tailor()
  */
 grammarTree *grammarTree::tailor_inner()
 {
-    // postorder
-    if (left)
-    {
-        left = left->tailor_inner();
-    }
-    if (right)
-    {
-        right = right->tailor_inner();
-    }
-    /* Case 1: Add -> Mul -> Unary -> Primary -> .
-     * Case 2: list -> list -> none
-     */
-    switch (type())
-    {
-    case Garbage:
-    {
-        return fold_rchain();
-    }
-    break;
-    case List:
-        if (nb_child() == 0)
-        {
-            return fold_rchain();
-        }
-        else
-        {
-            return fold_lchain();
-        }
-        break;
-    case BinExpr:
-        if (nb_child() == 1)
-        {
-            return fold_lchain();
-        }
-        break;
-    default:
-        if (name == "UnaryExp")
-        {
-            if (nb_child() == 1)
-            {
-                return fold_lchain();
-            }
-        }
-        else if (name == "PrimaryExp")
-        {
-            if (nb_child() == 1)
-            {
-                return fold_lchain();
-            }
-        }
-        else if (name == "Exp")
-        {
-            if (nb_child() == 1)
-            {
-                return fold_lchain();
-            }
-        }
-        else if (name == "Stmt")
-        {
-            if (nb_child() == 0)
-            {
-                return fold_rchain();
-            }
-        }
-        else if (name == "BlockItem")
-        {
-            return fold_lchain();
-        }
-        else if (name == "Block")
-        {
-            left = left->fold_rchain(); // '{'
-            auto c = left;
-            while (c->right)
-            {
-                if (c->right->name == "}")
-                {
-                    c->right = c->right->fold_rchain(); // '}'
-                    break;
-                }
-                c = c->right;
-            }
-        }
-        break;
-    }
-    return this;
+	// postorder
+	if (left)
+	{
+		left = left->tailor_inner();
+	}
+	if (right)
+	{
+		right = right->tailor_inner();
+	}
+	/* Case 1: Add -> Mul -> Unary -> Primary -> .
+	 * Case 2: list -> list -> none
+	 */
+	switch (type())
+	{
+	case Garbage:
+	{
+		return fold_rchain();
+	}
+	break;
+	case List:
+		if (nb_child() == 0)
+		{
+			return fold_rchain();
+		}
+		else
+		{
+			return fold_lchain();
+		}
+		break;
+	case BinExpr:
+		if (nb_child() == 1)
+		{
+			return fold_lchain();
+		}
+		break;
+	default:
+		if (name == "UnaryExp")
+		{
+			if (nb_child() == 1)
+			{
+				return fold_lchain();
+			}
+		}
+		else if (name == "PrimaryExp")
+		{
+			if (nb_child() == 1)
+			{
+				return fold_lchain();
+			}
+		}
+		else if (name == "Exp")
+		{
+			if (nb_child() == 1)
+			{
+				return fold_lchain();
+			}
+		}
+		else if (name == "Stmt")
+		{
+			if (nb_child() == 0)
+			{
+				return fold_rchain();
+			}
+		}
+		else if (name == "BlockItem")
+		{
+			return fold_lchain();
+		}
+		else if (name == "Block")
+		{
+			left = left->fold_rchain(); // '{'
+			auto c = left;
+			while (c->right)
+			{
+				if (c->right->name == "}")
+				{
+					c->right = c->right->fold_rchain(); // '}'
+					break;
+				}
+				c = c->right;
+			}
+		}
+		break;
+	}
+	return this;
 }

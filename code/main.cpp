@@ -65,15 +65,15 @@ int main(int argc, char **argv)
             grammarTree *semantic = root;
 			root->tailor();
             nodePrint(syntax, filename, verbose);
-            //int semantic_error_num = semanticAnalysis(semantic);
+			//int semantic_error_num = semanticAnalysis(semantic);
 
-            //error_num += semantic_error_num;
+			//error_num += semantic_error_num;
 
 			printf("\n");
 			IR_entry(root);
 
-            delete root;
-            //destroySymbolTable();
+			delete root;
+			//destroySymbolTable();
         }
         else
         {
@@ -82,7 +82,7 @@ int main(int argc, char **argv)
             else
                 fprintf(stderr, "1 error occured when compiling.\n");
             error_num = 0;
-            last_error_lineno = 0;
+            last_error_lineno = 1;
             yylineno = 1;
             yycolumn = 1;
         }

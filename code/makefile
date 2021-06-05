@@ -1,7 +1,8 @@
 ROOT = cc
 
 cc.exe : grammarTree.cpp utils.cpp lex.yy.c y.tab.c
-	g++ -std=c++11 -o cc.exe grammarTree.cpp utils.cpp lex.yy.c y.tab.c
+	echo "DEPRECATED"
+	# g++ -std=c++11 -o cc.exe grammarTree.cpp utils.cpp lex.yy.c y.tab.c
 
 # lex_test : 
 

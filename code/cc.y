@@ -1,316 +1,297 @@
-/* declarations */
 %{
 #include <cstdlib>
 #include <cstdio>
-#include <string>
-
 #include "grammarTree.h"
 
 using namespace std;
 
-extern char *yytext;
 extern int yycolumn;
-extern FILE *yyin;
-extern FILE *yyout;
-grammarTree *root;
 extern int yylineno;
+
+int error_num = 0;
+int last_error_lineno = 0;
+
+struct grammarTree *root = NULL;
 
 int yylex(void);
 void yyerror(const char *);
-extern int IR_entry(const grammarTree *root);
+int isNewError(int error_lineno);
 %}
 
 %union {
-    struct grammarTree* tree;
+    struct grammarTree* node;
 }
 
-%token <tree> NUMBER CONST IDENT
-%token <tree> INT
-%token <tree> IF ELSE WHILE BREAK CONTINUE RETURN
-%token <tree> '+' '-' '*' '/' '%' '<' '>' '!' '='
-%token <tree> LE_OP GE_OP EQ_OP NE_OP AND_OP OR_OP 
-%token <tree> ';' ',' '[' ']' '(' ')' '{' '}'
+%token <node> NUMBER CONST IDENT WrongNumberFormat
+%token <node> INT UNDESIGNED
+%token <node> IF ELSE WHILE BREAK CONTINUE RETURN
+%token <node> '+' '-' '*' '/' '%' '<' '>' '!' '='
+%token <node> LE_OP GE_OP EQ_OP NE_OP AND_OP OR_OP 
+%token <node> ';' ',' '[' ']' '(' ')' '{' '}'
 
-%type <tree> CompUnit Decl 
-%type <tree> ConstDecl VarDecl ConstDef ConstInitVal ConstExp
-%type <tree> VarDef InitVal
-%type <tree> Exp PrimaryExp UnaryExp LVal AddExp LOrExp UnaryOp MulExp RelExp EqExp LAndExp
-%type <tree> FuncDef FuncFParam FuncFParams FuncRParams BType
-%type <tree> Block BlockItem
-%type <tree> ConstDef_list ConstExp_list VarDef_list Exp_list FuncFParam_list BlockItem_list
-%type <tree> Stmt Cond
+%type <node> CompUnit Decl 
+%type <node> ConstDecl VarDecl ConstDef ConstInitVal ConstExp
+%type <node> VarDef InitVal
+%type <node> Exp PrimaryExp UnaryExp LVal AddExp LOrExp UnaryOp MulExp RelExp EqExp LAndExp
+%type <node> FuncDef FuncFParam FuncFParams FuncRParams BType
+%type <node> Block BlockItem
+%type <node> ConstDef_list ConstExp_list VarDef_list Exp_list FuncFParam_list BlockItem_list
+%type <node> Stmt Cond
 
+%nonassoc error
+
+// %left '[' ']' '(' ')'
+%right '!'
+%left '/' '*' '%' 
+%left '+' '-'
+%left '>' GE_OP '<' LE_OP EQ_OP NE_OP
+%left AND_OP OR_OP
+%right '='
 %nonassoc LOWER_THAN_ELSE
 %nonassoc ELSE
 %%
-/* rules */
 
 // 编译单元
 CompUnit: 
-        CompUnit Decl{ root = $$ = createTree("CompUnit", 2, $1, $2);}
-    |   Decl{ root = $$ = createTree("CompUnit", 1, $1);}
-    |   CompUnit FuncDef{ root = $$ = createTree("CompUnit", 2, $1, $2);}
-    |   FuncDef{ root = $$ = createTree("CompUnit", 1, $1);}
+        CompUnit Decl{ root = $$ = createGrammarTree("CompUnit", 2, $1, $2);}
+    |   Decl{ root = $$ = createGrammarTree("CompUnit", 1, $1);}
+    |   CompUnit FuncDef{ root = $$ = createGrammarTree("CompUnit", 2, $1, $2);}
+    |   FuncDef{ root = $$ = createGrammarTree("CompUnit", 1, $1);}
     ;
 
 // 声明
 Decl: 
-        ConstDecl{$$ = createTree("Decl", 1, $1);}
-    |   VarDecl{$$ = createTree("Decl", 1, $1);}
+        ConstDecl{$$ = createGrammarTree("Decl", 1, $1);}
+    |   VarDecl{$$ = createGrammarTree("Decl", 1, $1);}
     ;
 
 // 常量声明
 ConstDecl:
-        CONST BType ConstDef ConstDef_list ';'{$$ = createTree("ConstDecl", 5, $1, $2, $3, $4, $5);}
+        CONST BType ConstDef ConstDef_list ';'{$$ = createGrammarTree("ConstDecl", 5, $1, $2, $3, $4, $5);}
     ;
 
 ConstDef_list:
-        ConstDef_list ',' ConstDef{$$ = createTree("ConstDef_list", 3, $1, $2, $3);}
-    |   {$$ = createTree("ConstDef_list", -1, yylineno);}
+        ConstDef_list ',' ConstDef{$$ = createGrammarTree("ConstDef_list", 3, $1, $2, $3);}
+    |   {$$ = addNullNode("ConstDef_list", yylineno, yycolumn);}
     ;
 
 // 基本类型
 BType:
-        INT{$$ = createTree("BType", 1, $1);}
+        INT{$$ = createGrammarTree("BType", 1, $1);}
+    |   UNDESIGNED{}
     ;
 
 // 常数定义
 ConstDef:
-        IDENT '=' ConstInitVal{$$ = createTree("ConstDef", 3, $1, $2, $3);}
-    |   IDENT '[' ConstExp ']' '=' ConstInitVal{$$ = createTree("ConstDef", 6, $1, $2, $3, $4, $5, $6);}
+        IDENT '=' ConstInitVal{$$ = createGrammarTree("ConstDef", 3, $1, $2, $3);}
+    |   IDENT '[' ConstExp ']' '=' ConstInitVal{$$ = createGrammarTree("ConstDef", 6, $1, $2, $3, $4, $5, $6);}
+    // |   IDENT '[' ConstExp ']' error{if (isNewError(yylineno)) fprintf(stderr, "Error [Syntax] at Line %d, Col %d: Define an array without initialization.\n", yylineno, yycolumn);}
+    // |   IDENT '[' error ']' '=' error{if (isNewError(yylineno)) fprintf(stderr, "Error [Syntax] at Line %d, Col %d: Array Initialization without space definition.\n", yylineno, yycolumn);}
     ;
 
 // 常量初值
 ConstInitVal:
-        ConstExp{$$ = createTree("ConstInitVal", 1, $1);}
-    |   '{' '}'{$$ = createTree("ConstInitVal", 2, $1, $2);}
-    |   '{' ConstExp ConstExp_list '}'{$$ = createTree("ConstInitVal", 4, $1, $2, $3, $4);}
+        ConstExp{$$ = createGrammarTree("ConstInitVal", 1, $1);}
+    |   '{' '}'{$$ = createGrammarTree("ConstInitVal", 2, $1, $2);}
+    |   '{' ConstExp ConstExp_list '}'{$$ = createGrammarTree("ConstInitVal", 4, $1, $2, $3, $4);}
     ;
 ConstExp_list:
-        ConstExp_list ',' ConstExp{$$ = createTree("ConstExp_list", 3, $1, $2, $3);}
-    |   {$$ = createTree("ConstExp_list", -1, yylineno);}
+        ConstExp_list ',' ConstExp{$$ = createGrammarTree("ConstExp_list", 3, $1, $2, $3);}
+    |   {$$ = addNullNode("ConstExp_list", yylineno, yycolumn);}
     ;
 
 // 变量声明
 VarDecl:
-        BType VarDef VarDef_list ';'{$$ = createTree("VarDecl", 4, $1, $2, $3, $4);}
+        BType VarDef VarDef_list ';'{$$ = createGrammarTree("VarDecl", 4, $1, $2, $3, $4);}
     ;
 
 VarDef_list:
-        VarDef_list ',' VarDef{$$ = createTree("VarDef_list", 3, $1, $2, $3);}
-    |   {$$ = createTree("VarDef_list", -1, yylineno);}
+        VarDef_list ',' VarDef{$$ = createGrammarTree("VarDef_list", 3, $1, $2, $3);}
+    |   {$$ = addNullNode("VarDef_list", yylineno, yycolumn);}
     ;
 
 // 变量定义
 VarDef: 
-        IDENT{$$ = createTree("VarDef", 1, $1);}
-    |   IDENT '[' ConstExp ']'{$$ = createTree("VarDef", 4, $1, $2, $3, $4);}
-    |   IDENT '=' InitVal{$$ = createTree("VarDef", 3, $1, $2, $3);}
-    |   IDENT '[' ConstExp ']' '=' InitVal{$$ = createTree("VarDef", 6, $1, $2, $3, $4, $5, $6);}
+        IDENT{$$ = createGrammarTree("VarDef", 1, $1);}
+    |   IDENT '[' ConstExp ']'{$$ = createGrammarTree("VarDef", 4, $1, $2, $3, $4);}
+    |   IDENT '=' InitVal{$$ = createGrammarTree("VarDef", 3, $1, $2, $3);}
+    |   IDENT '[' ConstExp ']' '=' InitVal{$$ = createGrammarTree("VarDef", 6, $1, $2, $3, $4, $5, $6);}
+    |   IDENT '[' ConstExp ']' '[' ConstExp ']'{if (isNewError(yylineno)) fprintf(stderr, "Error [Syntax] at Line %d, Col %d: Don't support 2d array.\n", yylineno, yycolumn, yytext);}
     ;
 
 // 变量初值
 InitVal:
-        Exp{$$ = createTree("InitVal", 1, $1);}
-    |   '{' '}'{$$ = createTree("InitVal", 2, $1, $2);}
-    |   '{' Exp Exp_list '}'{$$ = createTree("InitVal", 4, $1, $2, $3, $4);}
+        Exp{$$ = createGrammarTree("InitVal", 1, $1);}
+    |   '{' '}'{$$ = createGrammarTree("InitVal", 2, $1, $2);}
+    |   '{' Exp Exp_list '}'{$$ = createGrammarTree("InitVal", 4, $1, $2, $3, $4);}
     ;
 
 Exp_list:
-        Exp_list ',' Exp{$$ = createTree("Exp_list", 3, $1, $2, $3);}
-    |   {$$ = createTree("Exp_list", -1, yylineno);}
+        Exp_list ',' Exp{$$ = createGrammarTree("Exp_list", 3, $1, $2, $3);}
+    |   {$$ = addNullNode("Exp_list", yylineno, yycolumn);}
     ;
 
 // 函数定义
 FuncDef:
-        BType IDENT '(' FuncFParams ')' Block{$$ = createTree("FuncDef", 6, $1, $2, $3, $4, $5, $6);}
+        BType IDENT '(' FuncFParams ')' Block{$$ = createGrammarTree("FuncDef", 6, $1, $2, $3, $4, $5, $6);}
     ;
 
 // 函数形参表
 FuncFParams: 
-        FuncFParam FuncFParam_list{$$ = createTree("FuncFParams", 2, $1, $2);}
-    |   {$$ = createTree("FuncFParams", -1, yylineno);}
+        FuncFParam FuncFParam_list{$$ = createGrammarTree("FuncFParams", 2, $1, $2);}
+    |   {$$ = addNullNode("FuncFParams", yylineno, yycolumn);}
     ;
 
 FuncFParam_list:
-        FuncFParam_list ',' FuncFParam{$$ = createTree("FuncFParam_list", 3, $1, $2, $3);}
-    |   {$$ = createTree("FuncFParam_list", -1, yylineno);}
+        FuncFParam_list ',' FuncFParam{$$ = createGrammarTree("FuncFParam_list", 3, $1, $2, $3);}
+    |   {$$ = addNullNode("FuncFParam_list", yylineno, yycolumn);}
     ;
 
 // 函数形参
 FuncFParam:
-        BType IDENT{$$ = createTree("FuncFParam", 2, $1, $2);}
-    |   BType IDENT '[' ']'{$$ = createTree("FuncFParam", 4, $1, $2, $3, $4);}
+        BType IDENT{$$ = createGrammarTree("FuncFParam", 2, $1, $2);}
+    |   BType IDENT '[' ']'{$$ = createGrammarTree("FuncFParam", 4, $1, $2, $3, $4);}
     ;
 
 // 语句块
 Block:
-        '{' BlockItem_list '}'{$$ = createTree("Block", 3, $1, $2, $3);}
+        '{' BlockItem_list '}'{$$ = createGrammarTree("Block", 3, $1, $2, $3);}
     ;
     
 BlockItem_list:
-    BlockItem_list BlockItem{$$ = createTree("BlockItem_list", 2, $1, $2);}
-    |   {$$ = createTree("BlockItem_list", -1, yylineno);}
+    BlockItem_list BlockItem{$$ = createGrammarTree("BlockItem_list", 2, $1, $2);}
+    |   {$$ = addNullNode("BlockItem_list", yylineno, yycolumn);}
     ;
 
 // 语句块项
 BlockItem:
-        Decl{$$ = createTree("BlockItem", 1, $1);} 
-    |   Stmt{$$ = createTree("BlockItem", 1, $1);}
+        Decl{$$ = createGrammarTree("BlockItem", 1, $1);} 
+    |   Stmt{$$ = createGrammarTree("BlockItem", 1, $1);}
     ;
 
 // 语句
 Stmt:
-        LVal '=' Exp ';'{$$ = createTree("Stmt", 4, $1, $2, $3, $4);}
-    |   Exp ';'{$$ = createTree("Stmt", 2, $1, $2);}
-    |   ';'{$$ = createTree("Stmt", 1, $1);}
-    |   Block{$$ = createTree("Stmt", 1, $1);}
-    |   IF '(' Cond ')' Stmt{$$ = createTree("Stmt", 5, $1, $2, $3, $4, $5);}
-    |   IF '(' Cond ')' Stmt ELSE Stmt{$$ = createTree("Stmt", 7, $1, $2, $3, $4, $5, $6, $7);}
-    |   WHILE '(' Cond ')' Stmt{$$ = createTree("Stmt", 5, $1, $2, $3, $4, $5);}
-    |   BREAK ';'{$$ = createTree("Stmt", 2, $1, $2);}
-    |   CONTINUE ';'{$$ = createTree("Stmt", 2, $1, $2);}
-    |   RETURN Exp ';'{$$ = createTree("Stmt", 3, $1, $2, $3);}
+        LVal '=' Exp ';'{$$ = createGrammarTree("Stmt", 4, $1, $2, $3, $4);}
+    |   Exp ';'{$$ = createGrammarTree("Stmt", 2, $1, $2);}
+    |   ';'{$$ = createGrammarTree("Stmt", 1, $1);}
+    |   Block{$$ = createGrammarTree("Stmt", 1, $1);}
+    |   IF '(' Cond ')' Stmt{$$ = createGrammarTree("Stmt", 5, $1, $2, $3, $4, $5);}
+    |   IF '(' Cond ')' Stmt ELSE Stmt{$$ = createGrammarTree("Stmt", 7, $1, $2, $3, $4, $5, $6, $7);}
+    |   WHILE '(' Cond ')' Stmt{$$ = createGrammarTree("Stmt", 5, $1, $2, $3, $4, $5);}
+    |   BREAK ';'{$$ = createGrammarTree("Stmt", 2, $1, $2);}
+    |   CONTINUE ';'{$$ = createGrammarTree("Stmt", 2, $1, $2);}
+    |   RETURN Exp ';'{$$ = createGrammarTree("Stmt", 3, $1, $2, $3);}
+    |   Exp '=' LVal{if (isNewError(yylineno)) fprintf(stderr, "Error [Syntax] at Line %d, Col %d: Expression's left side must be a changeable value.\n", yylineno, yycolumn);}
     ;
 
 // 表达式
 Exp:
-        AddExp{$$ = createTree("Exp", 1, $1);}
+        AddExp{$$ = createGrammarTree("Exp", 1, $1);}
     ;
 
 // 条件表达式
 Cond:
-        LOrExp{$$ = createTree("Cond", 1, $1);}
+        LOrExp{$$ = createGrammarTree("Cond", 1, $1);}
     ;
 
 // 左值表达式
 LVal: 
-        IDENT{$$ = createTree("LVal", 1, $1);}
-    |   IDENT '[' Exp ']'{$$ = createTree("LVal", 4, $1, $2, $3, $4);}
+        IDENT{$$ = createGrammarTree("LVal", 1, $1);}
+    |   IDENT '[' Exp ']'{$$ = createGrammarTree("LVal", 4, $1, $2, $3, $4);}
     ;
 
 // 基本表达式
 PrimaryExp:
-        '(' Exp ')'{$$ = createTree("PrimaryExp", 3, $1, $2, $3);}
-    |   LVal{$$ = createTree("PrimaryExp", 1, $1);}
-    |   NUMBER{$$ = createTree("PrimaryExp", 1, $1);}
+        '(' Exp ')'{$$ = createGrammarTree("PrimaryExp", 3, $1, $2, $3);}
+    |   LVal{$$ = createGrammarTree("PrimaryExp", 1, $1);}
+    |   NUMBER{$$ = createGrammarTree("PrimaryExp", 1, $1);}
+    |   WrongNumberFormat{}
+    
     ;
 
 // 一元表达式
 UnaryExp:
-        PrimaryExp{$$ = createTree("UnaryExp", 1, $1);}
-    |   IDENT '(' FuncRParams ')'{$$ = createTree("UnaryExp", 4, $1, $2, $3, $4);}
-    |   UnaryOp UnaryExp{$$ = createTree("UnaryExp", 2, $1, $2);}
+        PrimaryExp{$$ = createGrammarTree("UnaryExp", 1, $1);}
+    |   IDENT '(' FuncRParams ')'{$$ = createGrammarTree("UnaryExp", 4, $1, $2, $3, $4);}
+    |   UnaryOp UnaryExp{$$ = createGrammarTree("UnaryExp", 2, $1, $2);}
     ;
 
 // 单目运算符
 UnaryOp:
-        '+'{$$ = createTree("UnaryOp", 1, $1);}
-    |   '-'{$$ = createTree("UnaryOp", 1, $1);}
-    |   '!'{$$ = createTree("UnaryOp", 1, $1);}
+        '+'{$$ = createGrammarTree("UnaryOp", 1, $1);}
+    |   '-'{$$ = createGrammarTree("UnaryOp", 1, $1);}
+    |   '!'{$$ = createGrammarTree("UnaryOp", 1, $1);}
     ;
 
 // 函数实参表
 FuncRParams:
-        Exp Exp_list{$$ = createTree("FuncRParams", 2, $1, $2);}
-    |   {$$ = createTree("FuncRParams", -1, yylineno);}
+        Exp Exp_list{$$ = createGrammarTree("FuncRParams", 2, $1, $2);}
+    |   {$$ = addNullNode("FuncRParams", yylineno, yycolumn);}
     ;
 
 // 加减表达式
 AddExp: 
-        MulExp{$$ = createTree("AddExp", 1, $1);}
-    |   AddExp '+' MulExp{$$ = createTree("AddExp", 3, $1, $2, $3);}
-    |   AddExp '-' MulExp{$$ = createTree("AddExp", 3, $1, $2, $3);}
+        MulExp{$$ = createGrammarTree("AddExp", 1, $1);}
+    |   AddExp '+' MulExp{$$ = createGrammarTree("AddExp", 3, $1, $2, $3);}
+    |   AddExp '-' MulExp{$$ = createGrammarTree("AddExp", 3, $1, $2, $3);}
     ;
 
 // 乘除模表达式
 MulExp:
-        UnaryExp{$$ = createTree("MulExp", 1, $1);}
-    |   MulExp '*' UnaryExp{$$ = createTree("MulExp", 3, $1, $2, $3);}
-    |   MulExp '/' UnaryExp{$$ = createTree("MulExp", 3, $1, $2, $3);}
-    |   MulExp '%' UnaryExp{$$ = createTree("MulExp", 3, $1, $2, $3);}
+        UnaryExp{$$ = createGrammarTree("MulExp", 1, $1);}
+    |   MulExp '*' UnaryExp{$$ = createGrammarTree("MulExp", 3, $1, $2, $3);}
+    |   MulExp '/' UnaryExp{$$ = createGrammarTree("MulExp", 3, $1, $2, $3);}
+    |   MulExp '%' UnaryExp{$$ = createGrammarTree("MulExp", 3, $1, $2, $3);}
     ;
 
 // 关系表达式
 RelExp:
-        AddExp{$$ = createTree("RelExp", 1, $1);}
-    |   RelExp '<' AddExp{$$ = createTree("RelExp", 3, $1, $2, $3);}
-    |   RelExp '>' AddExp{$$ = createTree("RelExp", 3, $1, $2, $3);}
-    |   RelExp LE_OP AddExp{$$ = createTree("RelExp", 3, $1, $2, $3);}
-    |   RelExp GE_OP AddExp{$$ = createTree("RelExp", 3, $1, $2, $3);}
+        AddExp{$$ = createGrammarTree("RelExp", 1, $1);}
+    |   RelExp '<' AddExp{$$ = createGrammarTree("RelExp", 3, $1, $2, $3);}
+    |   RelExp '>' AddExp{$$ = createGrammarTree("RelExp", 3, $1, $2, $3);}
+    |   RelExp LE_OP AddExp{$$ = createGrammarTree("RelExp", 3, $1, $2, $3);}
+    |   RelExp GE_OP AddExp{$$ = createGrammarTree("RelExp", 3, $1, $2, $3);}
     ;
 
 // 相等性表达式
 EqExp:
-        RelExp{$$ = createTree("EqExp", 1, $1);}
-    |   EqExp EQ_OP RelExp{$$ = createTree("EqExp", 3, $1, $2, $3);}
-    |   EqExp NE_OP RelExp{$$ = createTree("EqExp", 3, $1, $2, $3);}
+        RelExp{$$ = createGrammarTree("EqExp", 1, $1);}
+    |   EqExp EQ_OP RelExp{$$ = createGrammarTree("EqExp", 3, $1, $2, $3);}
+    |   EqExp NE_OP RelExp{$$ = createGrammarTree("EqExp", 3, $1, $2, $3);}
     ;
 
 // 逻辑与表达式
 LAndExp:
-        EqExp{$$ = createTree("LAndExp", 1, $1);}
-    |   LAndExp AND_OP EqExp{$$ = createTree("LAndExp", 3, $1, $2, $3);}
+        EqExp{$$ = createGrammarTree("LAndExp", 1, $1);}
+    |   LAndExp AND_OP EqExp{$$ = createGrammarTree("LAndExp", 3, $1, $2, $3);}
     ;
 
 // 逻辑或表达式
 LOrExp:
-        LAndExp{$$ = createTree("LOrExp", 1, $1);}
-    |   LOrExp OR_OP LAndExp{$$ = createTree("LOrExp", 3, $1, $2, $3);}
+        LAndExp{$$ = createGrammarTree("LOrExp", 1, $1);}
+    |   LOrExp OR_OP LAndExp{$$ = createGrammarTree("LOrExp", 3, $1, $2, $3);}
     ;
 
 // 表达式
 ConstExp:
-        AddExp{$$ = createTree("ConstExp", 1, $1);}
+        AddExp{$$ = createGrammarTree("ConstExp", 1, $1);}
     ;
 %%
 
-/* programs */
-/* allows for printing of an error message */
 void yyerror(char const *s)
 {
-	fflush(stdout);
-	printf("\nRow No.%d, Col No.%d: [Yacc]%s\n", yylineno, yycolumn, s);
-    exit(0);
+    if (isNewError(yylineno)){
+        fprintf(stderr, "Error [Syntax] at Line %d, Col %d: %s.\n", yylineno, yycolumn, s);
+    }
 }
 
-int main(int argc, char* argv[]) {
-    /* Read test file from command line */
-    bool verbose = false;
-    string tmp = argv[1];
-    if (tmp == "true"){
-        verbose = true;
+int isNewError(int error_lineno){
+    if (last_error_lineno != error_lineno){
+        error_num++;
+        last_error_lineno = error_lineno;
+        return 1;
     }
-    
-    int start = 1;
-    if (tmp != "true" || tmp != "false"){
-        start = 2;
+    else{
+        return 0;
     }
-    
-    if (verbose){
-        for (int i=1; i<argc; i++){
-            cout << "Argument " << i << " is " << argv[i] << endl;
-        }
-    }
-
-    for (int i=start; i<argc; i++){
-        string filename = argv[i];
-        yyin = fopen(argv[i], "r");
-        
-        printf("\nThe source code of %s is:\n ", argv[i]);
-        yyparse();
-
-        grammarTree* tmp = root;
-        // if (verbose)
-        //     outputTree(root, 0);
-        root->tailor();
-        floorPrint(root, filename, verbose);
-        nodePrint(tmp, filename, verbose);
-
-        fclose(yyin);
-        printf("\n");
-        IR_entry(root);
-        delete root;
-    }
-    return 0;
 }

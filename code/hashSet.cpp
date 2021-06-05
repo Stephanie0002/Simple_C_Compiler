@@ -17,41 +17,7 @@ myHashSet initHashSet(int size)
     return set;
 }
 
-bool contains(myHashSet set, string name, mySymbolType type)
-{
-    unsigned int hash = calHash(name);
-    mySymbolList *listhead = set->buckets[hash].symbol_list;
-    if (listhead == nullptr)
-    {
-        return false;
-    }
-    else
-    {
-        for (mySymbolList *p = listhead; p != nullptr; p = p->next)
-        {
-            if (p->symbol->name == name)
-            {
-                mySymbolType p_type = p->symbol->symbol_type;
-                switch (type)
-                {
-                case VAR:
-                    if (p_type == VAR)
-                        return true;
-                    break;
-                case FUNC:
-                    if (p_type == FUNC)
-                        return true;
-                    break;
-                default:
-                    break;
-                }
-            }
-        }
-        return false;
-    }
-}
-
-void insert(myHashSet set, mySymbol *symbol)
+bool insert(myHashSet set, mySymbol *symbol)
 {
     unsigned int hash = calHash(symbol->name);
     mySymbolList *listhead = set->buckets[hash].symbol_list;
@@ -69,39 +35,19 @@ void insert(myHashSet set, mySymbol *symbol)
         {
             if (p->symbol->name == symbol->name)
             {
-                // return false;
+                return false;
             }
         }
-        if (p->symbol->name == symbol->name && p->symbol->symbol_type == symbol->symbol_type)
+        if (p->symbol->name == symbol->name)
         {
-            // return false;
+            return false;
         }
         mySymbolList *newSymbol = new mySymbolList;
         newSymbol->symbol = symbol;
         newSymbol->next = nullptr;
         p->next = newSymbol;
     }
-}
-
-mySymbol *get(myHashSet set, string name, mySymbolType type)
-{
-    unsigned int hash = calHash(name);
-    mySymbolList *listhead = set->buckets[hash].symbol_list;
-    if (listhead == nullptr)
-    {
-        return nullptr;
-    }
-    else
-    {
-        for (mySymbolList *p = listhead; p != nullptr; p = p->next)
-        {
-            if (p->symbol->name == name && p->symbol->symbol_type == type)
-            {
-                return p->symbol;
-            }
-        }
-        return nullptr;
-    }
+    return true;
 }
 
 unsigned int calHash(string name)
