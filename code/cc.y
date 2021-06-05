@@ -5,6 +5,8 @@
 
 using namespace std;
 
+extern char *yytext;
+
 extern int yycolumn;
 extern int yylineno;
 

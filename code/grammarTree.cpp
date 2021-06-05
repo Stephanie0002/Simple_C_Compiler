@@ -1,5 +1,7 @@
 #include "grammarTree.h"
 
+extern char *yytext;
+
 grammarTree *createGrammarTree(string name, int num, ...)
 {
     grammarTree *root = new grammarTree();
@@ -226,12 +228,6 @@ void nodePrint(grammarTree *root, string filename, bool verbose)
     }
 }
 
-void destroySyntaxTree(grammarTree *node)
-{
-    delete node->left;
-    delete node->right;
-}
-
 // tailor_inner() + folding "CompUnit"
 void grammarTree::tailor()
 {
@@ -241,7 +237,6 @@ void grammarTree::tailor()
 		left = left->fold_lchain();
 	}
 }
-
 
 /* remove meaningless tokens;
    fold branches caused by precedence distinguishing;

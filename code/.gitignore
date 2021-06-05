@@ -12,6 +12,7 @@ lex.yy.c
 *.lo
 *.o
 *.obj
+cc
 
 # Precompiled Headers
 *.gch

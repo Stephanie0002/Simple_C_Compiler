@@ -1,9 +1,18 @@
 %option yylineno
 
 %{
+#include "y.tab.h"
+
+#if defined(__GNUC__) || defined(__GNUG__)
+#include "unistd.h"
+#elif defined(_MSC_VER)
+#include "io.h"
+#endif
 #include <cstdio>
 #include <cstdlib>
-#include "y.tab.h"
+#include <cstring>
+#include <iostream>
+
 #include "grammarTree.h"
 
 using namespace std;

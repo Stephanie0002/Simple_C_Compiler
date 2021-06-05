@@ -5,13 +5,13 @@
 #include <cstdlib>
 #include <cstring>
 #include <cstdarg>
+#include <iostream>
+#include <string>
 #include <queue>
 #include <fstream>
 #include "utils.h"
 
 using namespace std;
-
-extern char *yytext;
 
 struct grammarTree
 {
@@ -19,8 +19,8 @@ struct grammarTree
     string content;
     int lineno;
     int id;
-    struct grammarTree *left;
-    struct grammarTree *right;
+    struct grammarTree *left; // 1st child
+    struct grammarTree *right; // next sibling
 	// prep for tailor; classified on Nb_opr
 	using Type_t = enum { BinExpr, List, Garbage, NA };
 	Type_t type() const {
@@ -80,7 +80,6 @@ struct grammarTree
 
 grammarTree *createGrammarTree(string name, int num, ...);
 grammarTree *addNullNode(string name, int lineno, int col);
-void destroySyntaxTree(grammarTree *node);
 void floorTraverse(grammarTree *root);
 void nodePrint(grammarTree *root, string out_name, bool verbose);
 

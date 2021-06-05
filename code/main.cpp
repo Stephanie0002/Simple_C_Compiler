@@ -15,7 +15,7 @@ extern int last_error_lineno;
 extern int yylineno;
 extern int yycolumn;
 extern struct grammarTree *root;
-extern int IR_entry(const grammarTree *root);
+extern int IR_entry(const grammarTree *root, string filename);
 
 int main(int argc, char **argv)
 {
@@ -70,7 +70,7 @@ int main(int argc, char **argv)
 			//error_num += semantic_error_num;
 
 			printf("\n");
-			IR_entry(root);
+			IR_entry(root, filename);
 
 			delete root;
 			//destroySymbolTable();
