@@ -7,5 +7,5 @@ flex cc.l
 bison -vdty cc.y
 g++ -std=c++11 -o cc main.cpp grammarTree.cpp Parser.cpp Symbol.cpp hashSet.cpp utils.cpp lex.yy.c y.tab.c
 cc false %TEST_FILE_CC%
-@REM cc false %ERROR_FILE_CC%
+cc false %ERROR_FILE_CC%
 @REM cc false ../test/error_test/18_illegal_idx.c

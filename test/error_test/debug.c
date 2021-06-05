@@ -1,23 +1,19 @@
-// int f1()
-// {
-// }
-
-// int f2(int a, int b[])
-// {
-// }
+#include <stdio.h>
+int test(int a)
+{
+    if (1)
+    {
+        int a = 1;
+        {
+            int a, b;
+            printf("%d %d ", a, b);
+        }
+    }
+    return a;
+}
 
 int main()
 {
-    // const int a = 1;
-    // const int b = 2, c = 3;
-    // const int d[2] = {4, 5};
-    // const int e[2] = {6};
 
-    // int f;
-    // int g = 1;
-    // int h = 2, i = 3;
-    // int j[2];
-    // int k[2] = {4, 5};
-    // int l[2] = {6};
-    // int a[2];
+    printf("%d", test(5));
 }

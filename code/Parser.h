@@ -14,17 +14,19 @@ bool checkRepeatFuncDef(mySymbol *symb, int lineno);
 void checkRepeatVarDef(mySymbol *symb, int lineno);
 void checkArray(mySymbol *symb, int lineno);
 void checkExp(int lineno);
+void checkSimpleExp(int lineno, myOpd *left_opd, myOpd *right_opd, string op, string op_des);
 void clearExp();
 void checkFuncRet(int lineno);
 void checkFuncCall(string func_name, int lineno);
 void checkNotDef(string name, int lineno, string type);
 void getDATA(myData *DATA, string name);
 
+void addDomain(string domain_name, mySymbolType domain_type);
 void addNewEleToArray(myData *new_ele, mySymbol *symb);
 void addNewParamToParamList(myParam *new_param, myParam *param_list);
 void getEleFromArray(int lineno);
 
-int semanticAnalysis(const grammarTree *root);
+int semanticAnalysis(const grammarTree *root, bool verbose);
 void semanticInit(const grammarTree *root);
 // void analyseProgram(const syntaxTree *root);
 void analyseCompUnit(const grammarTree *node);

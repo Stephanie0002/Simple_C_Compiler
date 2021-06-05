@@ -63,7 +63,7 @@ int main(int argc, char **argv)
             grammarTree *syntax = root;
             grammarTree *semantic = root;
             nodePrint(syntax, filename, verbose);
-            int semantic_error_num = semanticAnalysis(semantic);
+            int semantic_error_num = semanticAnalysis(semantic, verbose);
 
             error_num += semantic_error_num;
 

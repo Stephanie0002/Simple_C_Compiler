@@ -72,35 +72,35 @@ grammarTree *createGrammarTree(string name, int num, ...)
 
 grammarTree *addNullNode(string name, int lineno, int col)
 {
-	grammarTree *root = new grammarTree;
-	if (!root)
-	{
-		fprintf(stderr, "Error [Syntax] Syntax tree out of space when adding ε node.\n");
-		exit(0);
-	}
+    grammarTree *root = new grammarTree;
+    if (!root)
+    {
+        fprintf(stderr, "Error [Syntax] Syntax tree out of space when adding ε node.\n");
+        exit(0);
+    }
 
-	grammarTree *tmp = new grammarTree;
-	if (!tmp)
-	{
-		fprintf(stderr, "Error [Syntax] Syntax tree out of space when adding ε node.\n");
-		exit(0);
-	}
+    grammarTree *tmp = new grammarTree;
+    if (!tmp)
+    {
+        fprintf(stderr, "Error [Syntax] Syntax tree out of space when adding ε node.\n");
+        exit(0);
+    }
 
-	tmp->left = nullptr;
-	tmp->right = nullptr;
-	tmp->content = "none";
-	tmp->name = "none";
-	tmp->lineno = lineno;
-	tmp->id = -1;
+    tmp->left = nullptr;
+    tmp->right = nullptr;
+    tmp->content = "none";
+    tmp->name = "none";
+    tmp->lineno = lineno;
+    tmp->id = -1;
 
-	root->left = tmp;
-	root->right = nullptr;
-	root->name = name;
-	root->content = "";
-	root->lineno = lineno;
-	tmp->id = -1;
+    root->left = tmp;
+    root->right = nullptr;
+    root->name = name;
+    root->content = "";
+    root->lineno = lineno;
+    tmp->id = -1;
 
-	return root;
+    return root;
 }
 
 void floorTraverse(grammarTree *root)
@@ -137,7 +137,7 @@ void floorTraverse(grammarTree *root)
     }
 }
 
-void nodePrint(grammarTree *root, string filename, bool verbose)
+void nodePrint(grammarTree *root, string filename, bool verbose = false)
 {
     if (root->id == -1)
     {
@@ -235,102 +235,101 @@ void destroySyntaxTree(grammarTree *node)
 // tailor_inner() + folding "CompUnit"
 void grammarTree::tailor()
 {
-	tailor_inner();
-	while (left->name == "CompUnit")
-	{
-		left = left->fold_lchain();
-	}
+    tailor_inner();
+    while (left->name == "CompUnit")
+    {
+        left = left->fold_lchain();
+    }
 }
-
 
 /* remove meaningless tokens;
    fold branches caused by precedence distinguishing;
  */
 grammarTree *grammarTree::tailor_inner()
 {
-	// postorder
-	if (left)
-	{
-		left = left->tailor_inner();
-	}
-	if (right)
-	{
-		right = right->tailor_inner();
-	}
-	/* Case 1: Add -> Mul -> Unary -> Primary -> .
+    // postorder
+    if (left)
+    {
+        left = left->tailor_inner();
+    }
+    if (right)
+    {
+        right = right->tailor_inner();
+    }
+    /* Case 1: Add -> Mul -> Unary -> Primary -> .
 	 * Case 2: list -> list -> none
 	 */
-	switch (type())
-	{
-	case Garbage:
-	{
-		return fold_rchain();
-	}
-	break;
-	case List:
-		if (nb_child() == 0)
-		{
-			return fold_rchain();
-		}
-		else
-		{
-			return fold_lchain();
-		}
-		break;
-	case BinExpr:
-		if (nb_child() == 1)
-		{
-			return fold_lchain();
-		}
-		break;
-	default:
-		if (name == "UnaryExp")
-		{
-			if (nb_child() == 1)
-			{
-				return fold_lchain();
-			}
-		}
-		else if (name == "PrimaryExp")
-		{
-			if (nb_child() == 1)
-			{
-				return fold_lchain();
-			}
-		}
-		else if (name == "Exp")
-		{
-			if (nb_child() == 1)
-			{
-				return fold_lchain();
-			}
-		}
-		else if (name == "Stmt")
-		{
-			if (nb_child() == 0)
-			{
-				return fold_rchain();
-			}
-		}
-		else if (name == "BlockItem")
-		{
-			return fold_lchain();
-		}
-		else if (name == "Block")
-		{
-			left = left->fold_rchain(); // '{'
-			auto c = left;
-			while (c->right)
-			{
-				if (c->right->name == "}")
-				{
-					c->right = c->right->fold_rchain(); // '}'
-					break;
-				}
-				c = c->right;
-			}
-		}
-		break;
-	}
-	return this;
+    switch (type())
+    {
+    case Garbage:
+    {
+        return fold_rchain();
+    }
+    break;
+    case List:
+        if (nb_child() == 0)
+        {
+            return fold_rchain();
+        }
+        else
+        {
+            return fold_lchain();
+        }
+        break;
+    case BinExpr:
+        if (nb_child() == 1)
+        {
+            return fold_lchain();
+        }
+        break;
+    default:
+        if (name == "UnaryExp")
+        {
+            if (nb_child() == 1)
+            {
+                return fold_lchain();
+            }
+        }
+        else if (name == "PrimaryExp")
+        {
+            if (nb_child() == 1)
+            {
+                return fold_lchain();
+            }
+        }
+        else if (name == "Exp")
+        {
+            if (nb_child() == 1)
+            {
+                return fold_lchain();
+            }
+        }
+        else if (name == "Stmt")
+        {
+            if (nb_child() == 0)
+            {
+                return fold_rchain();
+            }
+        }
+        else if (name == "BlockItem")
+        {
+            return fold_lchain();
+        }
+        else if (name == "Block")
+        {
+            left = left->fold_rchain(); // '{'
+            auto c = left;
+            while (c->right)
+            {
+                if (c->right->name == "}")
+                {
+                    c->right = c->right->fold_rchain(); // '}'
+                    break;
+                }
+                c = c->right;
+            }
+        }
+        break;
+    }
+    return this;
 }
