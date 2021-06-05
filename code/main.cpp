@@ -49,8 +49,8 @@ int main(int argc, char **argv)
         FILE *file = fopen(argv[i], "r");
         if (!file)
         {
-            perror(argv[i]);
-            return 1;
+            fprintf(stderr, "Error [Others]: %s: No such file or directory.\n", filename.c_str());
+            continue;
         }
 
         printf("\n---Compile file %s:---\n", filename.c_str());
@@ -60,10 +60,8 @@ int main(int argc, char **argv)
 
         if (error_num == 0)
         {
-            grammarTree *syntax = root;
-            grammarTree *semantic = root;
-            nodePrint(syntax, filename, verbose);
-            int semantic_error_num = semanticAnalysis(semantic, verbose);
+            nodePrint(root, filename, verbose);
+            int semantic_error_num = semanticAnalysis(root, verbose);
 
             error_num += semantic_error_num;
 

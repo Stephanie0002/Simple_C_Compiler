@@ -424,7 +424,8 @@ void getDATA(myData *DATA, string name)
 int semanticAnalysis(const grammarTree *root, bool verbose = false)
 {
     debug = verbose;
-    semanticInit(root);
+    const grammarTree *syntax = root;
+    semanticInit(syntax);
     return semantic_error_num;
 }
 

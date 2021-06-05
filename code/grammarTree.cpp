@@ -139,9 +139,10 @@ void floorTraverse(grammarTree *root)
 
 void nodePrint(grammarTree *root, string filename, bool verbose = false)
 {
-    if (root->id == -1)
+    grammarTree *syntax = root;
+    if (syntax->id == -1)
     {
-        grammarTree *tmp = root;
+        grammarTree *tmp = syntax;
         floorTraverse(tmp);
     }
     // verbose = true;
@@ -149,7 +150,7 @@ void nodePrint(grammarTree *root, string filename, bool verbose = false)
     {
         printf("\n");
     }
-    if (root == nullptr)
+    if (syntax == nullptr)
         return;
     // remove dir/ preceding
     for (auto i = filename.size(); i != 0; i--)
@@ -163,7 +164,7 @@ void nodePrint(grammarTree *root, string filename, bool verbose = false)
     filename = "viewTree/" + filename + "_node_tree.txt";
     ofstream outfile(filename);
     queue<grammarTree *> q;
-    q.push(root);
+    q.push(syntax);
     while (!q.empty())
     {
         int currentSize = q.size();
