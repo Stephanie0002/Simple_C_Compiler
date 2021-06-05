@@ -45,7 +45,7 @@ static void InitializeContext() {
 }
 
 int IR_entry(const grammarTree *root) {
-  // return 0;
+  return 0;
   InitializeContext();
 
   // IR codegen the CompUnit

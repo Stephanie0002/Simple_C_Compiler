@@ -22,6 +22,7 @@ std::unique_ptr<VarDefAST> get_Decl_AST(const grammarTree *r, bool isGlbl) {
       std::unique_ptr<ExprAST> iv;
       auto pEQ = pIDENT->right;
       if (pEQ && pEQ->name == "=") {
+        // todo initval
         iv = std::move(get_Exp_AST(pEQ->right)); // todo array
       }
       varnames.push_back(std::make_pair(id, std::move(iv)));
