@@ -1,5 +1,6 @@
 #include "AST.hpp"
 #include "IRgen.hpp"
+#include "libsysy.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Transforms/InstCombine/InstCombine.h"
 #include "llvm/Transforms/Scalar.h"
@@ -44,8 +45,37 @@ static void InitializeContext() {
   TheFPM->doInitialization();
 }
 
-int IR_entry(const grammarTree *root) {
-  return 0;
+// dbg
+static int irPrint(string filename) {
+  // remove dir/ preceding
+  for (auto i = filename.size(); i != 0; i--) {
+    if (filename[i] == '\\' || filename[i] == '/') {
+      filename = filename.substr(i + 1);
+      break;
+    }
+  }
+  filename = "ir/" + filename + ".ll";
+
+  std::error_code ec;
+  TheModule->print(raw_fd_ostream(filename, ec), nullptr);
+  return bool(ec);
+}
+
+static void irRun() {
+  // target obj gen
+  // Create a ResourceTracker to track JIT'd memory allocated
+  auto RT = TheJIT->getMainJITDylib().createResourceTracker();
+  auto TSM = ThreadSafeModule(std::move(TheModule), std::move(TheContext));
+  ExitOnErr(TheJIT->addModule(std::move(TSM), RT));
+
+  // locate target obj entry, cast to func ptr and call it
+  auto ExprSymbol = ExitOnErr(TheJIT->lookup("main"));
+  int (*FP)() = (int (*)())(intptr_t)ExprSymbol.getAddress();
+  fprintf(stderr, "Target main() exited on %d\n", FP());
+  ExitOnErr(RT->remove());
+}
+
+int IR_entry(const grammarTree *root, string filename) {
   InitializeContext();
 
   // IR codegen the CompUnit
@@ -62,20 +92,9 @@ int IR_entry(const grammarTree *root) {
   // Print out all of the generated code.
   TheModule->print(llvm::errs(), nullptr);
   // dump to file
-  std::error_code ec;
-  TheModule->print(raw_fd_ostream("main.ll", ec), nullptr);
+  irPrint(filename);
 
-  // target obj gen
-  // Create a ResourceTracker to track JIT'd memory allocated
-  auto RT = TheJIT->getMainJITDylib().createResourceTracker();
-  auto TSM = ThreadSafeModule(std::move(TheModule), std::move(TheContext));
-  ExitOnErr(TheJIT->addModule(std::move(TSM), RT));
-
-  // locate target obj entry, cast to func ptr and call it
-  auto ExprSymbol = ExitOnErr(TheJIT->lookup("main"));
-  int (*FP)() = (int (*)())(intptr_t)ExprSymbol.getAddress();
-  fprintf(stderr, "Target main() exited on %d\n", FP());
-  ExitOnErr(RT->remove());
+  irRun();
 
   return 0;
 }
