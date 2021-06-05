@@ -36,9 +36,9 @@ static void InitializeContext() {
   // Do simple "peephole" optimizations and bit-twiddling optzns.
   TheFPM->add(createInstructionCombiningPass());
   // Reassociate expressions.
-  TheFPM->add(createReassociatePass());
+  //TheFPM->add(createReassociatePass());
   // Eliminate Common SubExpressions.
-  TheFPM->add(createGVNPass());
+  //TheFPM->add(createGVNPass());
   // Simplify the control flow graph (deleting unreachable blocks, etc).
   TheFPM->add(createCFGSimplificationPass());
 

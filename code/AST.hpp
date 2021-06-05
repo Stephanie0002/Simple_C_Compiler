@@ -21,6 +21,9 @@ public:
   virtual Value *codegen() = 0;
 };
 
+class VarDefAST;
+class GlblVarDefAST;
+
 /// BlockAST - contains a series of ExprAST; marks a new scope.
 class BlockAST : public ExprAST {
   std::vector<std::unique_ptr<ExprAST>> items;
@@ -30,6 +33,9 @@ public:
       : items(std::move(items)) {}
 
   Value *codegen() override;
+
+  friend class VarDefAST;
+  friend class GlblVarDefAST;
 };
 
 /// NumberExprAST - Expression class for numeric literals like "1".
@@ -42,15 +48,21 @@ public:
   Value *codegen() override;
 };
 
+class VarAssignAST;
+
 /// VariableExprAST - Expression class for referencing a variable, like "a".
 class VariableExprAST : public ExprAST {
   std::string Name;
+  std::unique_ptr<ExprAST> idx; // array ref
 
 public:
-  VariableExprAST(const std::string &Name) : Name(Name) {}
+  VariableExprAST(const std::string &Name, std::unique_ptr<ExprAST> idx = nullptr)
+      : Name(Name), idx(std::move(idx)) {}
 
   Value *codegen() override;
   const std::string &getName() const { return Name; }
+
+  friend class VarAssignAST;
 };
 
 /// UnaryExprAST - Expression class for a unary operator.
@@ -82,12 +94,13 @@ public:
  * "a = b = 1" is not allowed, but we leave it here.
  */
 class VarAssignAST : public ExprAST {
-  std::string VarName;
+  std::unique_ptr<VariableExprAST> LHS;
   std::unique_ptr<ExprAST> RHS;
 
 public:
-  VarAssignAST(std::string VarName, std::unique_ptr<ExprAST> RHS)
-      : VarName(std::move(VarName)), RHS(std::move(RHS)) {}
+  VarAssignAST(std::unique_ptr<VariableExprAST> LHS,
+               std::unique_ptr<ExprAST> RHS)
+      : LHS(std::move(LHS)), RHS(std::move(RHS)) {}
 
   Value *codegen() override;
 };
@@ -152,14 +165,19 @@ public:
  * The return value is not usable.
  */
 class VarDefAST : public ExprAST {
+public:
+  struct VN {
+    std::string Name;
+    std::unique_ptr<ExprAST> len; // nullptr means simple;
+    std::unique_ptr<ExprAST> iv;  // For array, it owns BlockAST
+  };
+
 protected:
+  std::vector<VN> VarNames;
   bool isConst;
-  std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> VarNames;
 
 public:
-  VarDefAST(
-      std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> VarNames,
-      bool isConst = false)
+  VarDefAST(std::vector<VN> VarNames, bool isConst = false)
       : VarNames(std::move(VarNames)), isConst(isConst) {}
 
   Value *codegen() override;
@@ -168,10 +186,9 @@ public:
 /// Global Variable needs different codegen
 class GlblVarDefAST : public VarDefAST {
 public:
-  GlblVarDefAST(
-      std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> VarNames,
-      bool isConst = false)
+  GlblVarDefAST(std::vector<VN> VarNames, bool isConst = false)
       : VarDefAST(std::move(VarNames), isConst) {}
+  
   Value *codegen() override;
 };
 
@@ -212,6 +229,7 @@ std::unique_ptr<VarDefAST> get_Decl_AST(const grammarTree *r,
 std::unique_ptr<ExprAST> get_Stmt_AST(const grammarTree *r);
 std::unique_ptr<BlockAST> get_Block_AST(const grammarTree *r);
 std::unique_ptr<ExprAST> get_Exp_AST(const grammarTree *r);
+std::unique_ptr<VariableExprAST> get_LVal_AST(const grammarTree *r);
 std::unique_ptr<BinaryExprAST>
 get_BinExpr_AST(const grammarTree *r,
                 std::stack<std::unique_ptr<ExprAST>> &out);

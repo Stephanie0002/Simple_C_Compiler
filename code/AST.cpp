@@ -5,35 +5,69 @@
 #include <string>
 #include <vector>
 
-// TODO Êý×éË÷Òý
-//* Constant
-
 // Translation from tailored grammarTree to AST
 // basically recursive descent
 
 std::unique_ptr<VarDefAST> get_Decl_AST(const grammarTree *r, bool isGlbl) {
-  auto d1 = r->left;
-  if (d1->name == "VarDecl") {
-    std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> varnames;
-    //! assumed int
-    for (auto vd = d1->left->right; vd; vd = vd->right) {
-      auto pIDENT = vd->left;
-      std::string id = pIDENT->content;
-      std::unique_ptr<ExprAST> iv;
-      auto pEQ = pIDENT->right;
-      if (pEQ && pEQ->name == "=") {
-        // todo initval
-        iv = std::move(get_Exp_AST(pEQ->right)); // todo array
+  const grammarTree *d1 = r->left, *vd;
+  bool isConst = false;
+  //! assumed int
+  if (d1->name == "ConstDecl") {
+    isConst = true;
+    vd = d1->left->right->right;
+  } else {
+    assert(d1->name == "VarDecl");
+    vd = d1->left->right;
+  }
+
+  std::vector<VarDefAST::VN> varnames;
+  for (; vd; vd = vd->right) {
+    auto pIDENT = vd->left;
+    std::string id = pIDENT->content;
+    std::unique_ptr<ExprAST> len, iv;
+    auto pEQ = pIDENT->right;
+    if (pEQ) {
+      // simple
+      if (pEQ->name == "=") {
+        iv = get_Exp_AST(pEQ->right->left); // simple InitVal
+      } else {
+        // array
+        assert(pEQ->name == "[");
+        auto pCExp = pEQ->right;
+        len = get_Exp_AST(pCExp);
+        pEQ = pCExp->right->right;
+        std::vector<std::unique_ptr<ExprAST>> civs;
+        // InitVal given
+        if (pEQ && pEQ->name == "=") {
+          auto pIV = pEQ->right;
+          for (auto pExp = pIV->left->right; pExp->name != "}";
+               pExp = pExp->right) {
+            civs.push_back(get_Exp_AST(pExp->left));
+          }
+        }
+        iv = std::make_unique<BlockAST>(std::move(civs));
       }
-      varnames.push_back(std::make_pair(id, std::move(iv)));
     }
-    if (isGlbl) {
-      return std::make_unique<GlblVarDefAST>(std::move(varnames));
-    } else {
-      return std::make_unique<VarDefAST>(std::move(varnames));
+    varnames.push_back(VarDefAST::VN{id, std::move(len), std::move(iv)});
+  }
+  if (isGlbl) {
+    return std::make_unique<GlblVarDefAST>(std::move(varnames), isConst);
+  } else {
+    return std::make_unique<VarDefAST>(std::move(varnames), isConst);
+  }
+}
+
+std::unique_ptr<VariableExprAST> get_LVal_AST(const grammarTree *r) {
+  auto pIDENT = r->left;
+  // arr idx
+  if (auto pBK = pIDENT->right) {
+    if (pBK->name == "[") {
+      auto pIdx = pBK->right;
+      return std::make_unique<VariableExprAST>(pIDENT->content, get_Exp_AST(pIdx));
     }
   } else {
-    assert(false);
+    // simple
+    return std::make_unique<VariableExprAST>(pIDENT->content);
   }
 }
 
@@ -88,13 +122,16 @@ std::unique_ptr<ExprAST> get_Exp_AST(const grammarTree *r) {
     }
     // terminal AST gen
     else if (r->name == "LVal") {
-      out.push(std::make_unique<VariableExprAST>(r->left->content));
+      out.push(get_LVal_AST(r));
     } else if (r->name == "NUMBER") {
       out.push(std::make_unique<NumberExprAST>(
           std::strtol(r->content.c_str(), nullptr, 10)));
     }
     // maintain postorder
     for (r = r->right; r; r = r->left) {
+      //todo nasty we need to control the degree of trav
+      if (string("[]{}").find(r->name) != string::npos)
+        break;
       in.push(r);
     }
   }
@@ -138,7 +175,7 @@ proc_CompUnit(const grammarTree *r) {
 std::unique_ptr<ExprAST> get_Stmt_AST(const grammarTree *item) {
   auto s1 = item->left;
   if (s1->name == "LVal") {
-    return std::make_unique<VarAssignAST>(s1->left->content,
+    return std::make_unique<VarAssignAST>(get_LVal_AST(s1),
                                           get_Exp_AST(s1->right->right));
   } else if (s1->name.rfind("Exp") != std::string::npos) {
     // contains "Exp"; ends_with will be more accurate but sufferred from OF
