@@ -135,6 +135,7 @@
     <ClInclude Include="grammarTree.h" />
     <ClInclude Include="hashSet.h" />
     <ClInclude Include="IRgen.hpp" />
+    <ClInclude Include="KaleidoscopeJIT.h" />
     <ClInclude Include="Parser.h" />
     <ClInclude Include="Symbol.h" />
     <ClInclude Include="utils.h" />

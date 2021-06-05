@@ -24,9 +24,7 @@ struct hashSet_
 };
 
 myHashSet initHashSet(int size);
-bool contains(myHashSet set, string name, mySymbolType type);
-void insert(myHashSet set, mySymbol *symbol);
+bool insert(myHashSet set, mySymbol *symbol);
 unsigned int calHash(string name);
-mySymbol *get(myHashSet set, string name, mySymbolType type);
 
 #endif
