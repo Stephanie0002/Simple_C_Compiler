@@ -7,4 +7,3 @@ set TEST_FILE_PY=-path ./viewTree/00_main.c_node_tree.txt -path ./viewTree/01_va
 
 SCC false %TEST_FILE_CC%
 python ./viewTree/main.py %TEST_FILE_PY%
-SCC false %Syntax_ERROR_FILE_CC%
