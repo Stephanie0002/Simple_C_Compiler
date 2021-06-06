@@ -15,9 +15,9 @@ filename=['00_main.c','01_var_defn.c','02_var_defn2.c',\
           '27_while_test1.c','28_while_test2.c','29_while_test3.c',\
           '30_while_if_test1.c','31_while_if_test2.c',\
           '32_while_if_test3.c','33_func_test1.c','34_func_test2.c',\
-          '35_array_test.c','36_domain_test.c','38_if_complex_expr.c',\
+          '38_if_complex_expr.c',\
           '39_assign_complex_expr.c','40_index_complex_expr.c',\
-          '41_index_arithmetic_expr.c','42_index_func_ret.c',\
+          '41_index_arithmetic_expr.c',\
           '43_time_prior_plus.c','44_add_prior_equal.c',\
           '45_equal_prior_logic.c','46_and_prior_or.c',\
           '47_minus_with_sub.c','49_decl_in_defn.c',\

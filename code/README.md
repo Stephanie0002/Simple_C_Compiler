@@ -3,7 +3,7 @@
 
 本文件夹存放代码、测试文件、及批处理文件等
 
-**2.文件夹结构内容
+**2.文件夹结构内容**
 
 /viewTree ---存放一个python项目，用于可视化语法分析树，需要电脑上安装有Graphvix方可显示出图片（用于可视化语法树的文件也在语义分析后生成在该目录下）
 
@@ -17,14 +17,14 @@
 
 /libsysy---存放一个VS项目，生成用于输入输出的动态dll库，输入类似下面的指令执行中间代码可以完成中间代码中相关输入输出（ 如getint(),  putint(), putch() ）
 
-`lli --dlopen="x64/Debug/libsysy.sll" .\main.ll`
+`lli --dlopen="x64/Debug/libsysy.dll" .\main.ll`
 
 
 
 **3.使用**
 windows下：
 
-*测试IR，也即完整跑通*：
+- *测试IR，也即完整跑通*：
 
 ```bash
 ./test_ir.bat              
@@ -32,7 +32,7 @@ windows下：
 
 执行后解析functional_test内文件并生成中间代码汇编代码于ir文件夹内
 
-*OR 进行语法树测试*：
+- *OR 进行语法树测试*：
 
 ```bash
 ./test_syntax.bat          
@@ -46,7 +46,7 @@ windows下：
 
 (该python文件`usage: main.py [-h] [-path PATH] [-path PATH] ... [-path PATH]`)
 
-*OR 进行错误检测测试*：
+- *OR 进行错误检测测试*：
 
 ```bash
 ./test_semantic.bat          
