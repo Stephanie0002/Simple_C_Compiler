@@ -71,7 +71,7 @@ Function *getFunction(std::string Name) {
   return nullptr;
 }
 
-// Methods
+// codegen Methods
 
 Value *BlockAST::codegen() {
   // new symtab for each scope
@@ -93,18 +93,21 @@ Value *VariableExprAST::codegen() {
   Value *V = NamedValues[Name];
   if (!V)
     return LogErrorV("Unknown variable name");
+  //? responsibility
+  if (idx) {
+    V = Builder->CreateGEP(Builder->getInt32Ty(), V, idx->codegen(), "arridx");
+  }
   return Builder->CreateLoad(Builder->getInt32Ty(), V, Name);
 }
 
 Value *UnaryExprAST::codegen() {
   Value *OperandV = Operand->codegen();
-  if (!OperandV)
-    return nullptr;
 
+  // Folder included; t.y. llvm
   if (Opcode == '-') {
-    return Builder->CreateNeg(OperandV);
+    return Builder->CreateNeg(OperandV, "negtmp");
   } else if (Opcode == '!') {
-    return Builder->CreateNot(OperandV);
+    return Builder->CreateNot(OperandV, "nottmp");
   } else if (Opcode == '+') {
     return OperandV;  
   } else {
@@ -177,7 +180,11 @@ Value *BinaryExprAST::codegen() {
 
 Value *VarAssignAST::codegen() {
   auto val = RHS->codegen();
-  auto var = NamedValues[VarName];
+  auto var = NamedValues[LHS->Name];
+  if (LHS->idx) {
+    Value *Idx = LHS->idx->codegen();
+    var = Builder->CreateGEP(Builder->getInt32Ty(), var, Idx, "arridx");
+  }
   Builder->CreateStore(val, var);
   return val;
 }
@@ -309,29 +316,80 @@ Value *GotoAST::codegen() {
 }
 
 Value* VarDefAST::codegen() {
-  for (auto &&p : VarNames) {
-    // alloc stack space
-    auto alloc = Builder->CreateAlloca(Builder->getInt32Ty(), nullptr, p.first);
-    // Record locals in the NamedValues map.
-    NamedValues[p.first] = alloc;
-    // InitVal
-    if (p.second) {
-      auto iv = p.second->codegen();
-      Builder->CreateStore(iv, alloc);
+  for (auto &&vn : VarNames) {
+    // simple
+    if (!vn.len) {
+      // alloc stack space
+      //todo const
+      auto alloc =
+          Builder->CreateAlloca(Builder->getInt32Ty(), nullptr, vn.Name);
+      // Record locals in the NamedValues map.
+      NamedValues[vn.Name] = alloc;
+      // InitVal
+      if (vn.iv) {
+        auto iv = vn.iv->codegen();
+        Builder->CreateStore(iv, alloc);
+      }
+    } else {
+      // array: len must be constant
+      auto len = cast<ConstantInt>(vn.len->codegen());
+      auto ulen = len->getZExtValue();
+      // alloc stack space
+      //todo const
+      auto alloc = Builder->CreateAlloca(Builder->getInt32Ty(), len, vn.Name);
+      if (vn.iv) {
+        auto p = static_cast<BlockAST *>(vn.iv.get());
+        for (int i = 0, e = p->items.size(); i < e && i < ulen; i++) {
+          // todo similar to VarAssign
+          auto iv = p->items[i]->codegen();
+          auto ep = Builder->CreateGEP(Builder->getInt32Ty(), alloc,
+                                       Builder->getInt32(i), "arrinit");
+          Builder->CreateStore(iv, ep);
+        }
+      }
+      // Record locals in the NamedValues map.
+      NamedValues[vn.Name] = alloc;
     }
   }
   return nullptr;
 }
 
 Value *GlblVarDefAST::codegen() {
-  for (auto &&p : VarNames) {
-    // todo const init
-    // using zero initializer
-    auto gv = new GlobalVariable(*TheModule, Builder->getInt32Ty(), false,
-                                 GlobalVariable::CommonLinkage,
-                                 Builder->getInt32(0), p.first);
-    // Record in the NamedValues map.
-    NamedValues[p.first] = gv;
+  for (auto &&vn : VarNames) {
+    GlobalVariable *gv;
+    // simple
+    if (!vn.len) {
+      // using zero initializer
+      auto init = Builder->getInt32(0);
+      if (vn.iv) {
+        // initval must be constant
+        init = cast<ConstantInt>(vn.iv->codegen());
+      }
+      gv = new GlobalVariable(*TheModule, Builder->getInt32Ty(), isConst,
+                              GlobalVariable::CommonLinkage, init, vn.Name);
+      // Record in the NamedValues map.
+      NamedValues[vn.Name] = gv;
+    } else {
+      // array: len must be constant
+      auto len = cast<ConstantInt>(vn.len->codegen());
+      auto ulen = len->getZExtValue();
+      auto ArrTy = ArrayType::get(Builder->getInt32Ty(), ulen);
+      // using zero initializer
+      auto init_ref = std::vector<Constant *>(ulen, Builder->getInt32(0));
+      if (vn.iv) {
+        auto p = static_cast<BlockAST *>(vn.iv.get());
+        for (int i = 0, e = p->items.size(), f = init_ref.size();
+             i < e && i < f; i++) {
+          // each must be constant
+          init_ref[i] = cast<ConstantInt>(p->items[i]->codegen());
+        }
+      }
+      gv = new GlobalVariable(
+          *TheModule, ArrTy, isConst, GlobalVariable::CommonLinkage,
+          ConstantArray::get(ArrTy, ArrayRef<Constant *>(init_ref)), vn.Name);
+      // Record in the NamedValues map.
+      NamedValues[vn.Name] = gv;
+    }
   }
   return nullptr;
 }

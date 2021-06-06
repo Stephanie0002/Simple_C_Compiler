@@ -1,18 +1,10 @@
 %option yylineno
+%option yywrap
 
 %{
-#include "y.tab.h"
-
-#if defined(__GNUC__) || defined(__GNUG__)
-#include "unistd.h"
-#elif defined(_MSC_VER)
-#include "io.h"
-#endif
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
-#include <iostream>
-
+#include "y.tab.h"
 #include "grammarTree.h"
 
 using namespace std;
@@ -33,23 +25,25 @@ Dec			0|([1-9]{D}*)
 Oct 		0[0-7]+
 Hex			0[xX]{H}+
 INT			{Dec}|{Oct}|{Hex}
-UNDESIGNED	"for"|"switch"|"case"|"char"|"double"|"float"|"bool"|"void"|"struct"
+UNDESIGNED	"char"|"double"|"float"|"bool"
 WrongOct	0[0-9]+
 WrongH		[a-zA-Z0-9]
 WrongHex	0[xX]{WrongH}+
 WrongInt	[0][0]+{INT}
 FLOAT		{D}"."{D}+
 SCIEN		({FLOAT}|{WrongInt}|{INT})[eE][+-]*[0]*({FLOAT}|{WrongInt}|{INT})
+BOOL		"true"|"false"
 
 %%
-"/*"			{ count(); formerComment(); }
-"*/"			{ count(); latterComment(); }
-"//"[^\n]*      {  }
+"/*"			{ formerComment(); }
+"*/"			{ latterComment(); }
+"//"[^\n]*      { char c = yyinput(); while (c!='\n') c=yyinput(); }
 
-{UNDESIGNED} 	{ count(); if (isNewError(yylineno)) fprintf(stderr, "Error [Lexical] at Line %d, Col %d: Undifined reserved word \'%s\'.\n", yylineno, yycolumn, yytext); return(UNDESIGNED);}
-{FLOAT}			{ count(); if (isNewError(yylineno)) fprintf(stderr, "Error [Lexical] at Line %d, Col %d: Wrong number format \'%s\'.\n", yylineno, yycolumn, yytext); return(WrongNumberFormat);}
-{SCIEN}			{ count(); if (isNewError(yylineno)) fprintf(stderr, "Error [Lexical] at Line %d, Col %d: Wrong number format \'%s\'.\n", yylineno, yycolumn, yytext); return(WrongNumberFormat);}
-{WrongInt}		{ count(); if (isNewError(yylineno)) fprintf(stderr, "Error [Lexical] at Line %d, Col %d: Confusing number format \'%s\'?\n", yylineno, yycolumn, yytext); return(WrongNumberFormat);}
+{UNDESIGNED} 	{ count(); if (isNewError(yylineno)) fprintf(stderr, "Error [Lexical] at Line %d, Col %d: Undefined data type \'%s\'.\n", yylineno, yycolumn, yytext); return(UNDESIGNED);}
+{FLOAT}			{ count(); if (isNewError(yylineno)) fprintf(stderr, "Error [Lexical] at Line %d, Col %d: Unsupported float/double format \'%s\'.\n", yylineno, yycolumn, yytext); return(WrongNumberFormat);}
+{SCIEN}			{ count(); if (isNewError(yylineno)) fprintf(stderr, "Error [Lexical] at Line %d, Col %d: Unsupported scientific format \'%s\'.\n", yylineno, yycolumn, yytext); return(WrongNumberFormat);}
+{BOOL}			{ count(); if (isNewError(yylineno)) fprintf(stderr, "Error [Lexical] at Line %d, Col %d: Unsupported bool format \'%s\'.\n", yylineno, yycolumn, yytext); return(WrongNumberFormat);}
+{WrongInt}		{ count(); if (isNewError(yylineno)) fprintf(stderr, "Error [Lexical] at Line %d, Col %d: Confusing decimal format \'%s\'?\n", yylineno, yycolumn, yytext); return(WrongNumberFormat);}
 {WrongOct}		{ count(); if (isNewError(yylineno)) fprintf(stderr, "Error [Lexical] at Line %d, Col %d: Illegal octal number \'%s\'.\n", yylineno, yycolumn, yytext); return(WrongNumberFormat);}
 {WrongHex}		{ count(); if (isNewError(yylineno)) fprintf(stderr, "Error [Lexical] at Line %d, Col %d: Illegal hex number \'%s\'.\n", yylineno, yycolumn, yytext); return(WrongNumberFormat);}
 
@@ -62,13 +56,7 @@ SCIEN		({FLOAT}|{WrongInt}|{INT})[eE][+-]*[0]*({FLOAT}|{WrongInt}|{INT})
 "continue"		{ count(); yylval.node = createGrammarTree("CONTINUE", 0, yylineno);	return(CONTINUE); }
 "return"		{ count(); yylval.node = createGrammarTree("RETURN", 0, yylineno); 	return(RETURN); }
 
-{L}({L}|{D})*   { 
-	if (yytext[0] >= '0' && yytext[0] <= '9') { 
-		if (isNewError(yylineno)){
-			fprintf(stderr, "Error [Lexical] at line %d, Col %d: Illegal identifier begin with number \'%d\'\n", yylineno, yycolumn, yytext[0]);
-		}
-	}
-	count(); yylval.node = createGrammarTree("IDENT", 0, yylineno);  return(IDENT);  }
+{L}({L}|{D})*   { count(); yylval.node = createGrammarTree("IDENT", 0, yylineno);  return(IDENT);  }
 {INT}  			{ count(); yylval.node = createGrammarTree("NUMBER", 0, yylineno); return(NUMBER); }
 
 "&&"	{ count(); yylval.node = createGrammarTree("AND_OP", 0, yylineno);	return(AND_OP); }
@@ -97,33 +85,55 @@ SCIEN		({FLOAT}|{WrongInt}|{INT})[eE][+-]*[0]*({FLOAT}|{WrongInt}|{INT})
 
 [\v\n\f ]     { count(); }
 [ \t\r]			{}
-. 				{ if (isNewError(yylineno)) fprintf(stderr, "Error [Lexical] at line %d, Col %d: Mysterious character \'%s\'.\n", yylineno, yycolumn, yytext); }
+. 				{ 
+	if (isNewError(yylineno)) {
+		if (yytext[0] == '\'' || yytext[0] == '"'){
+			fprintf(stderr, "Error [Lexical] at line %d, Col %d: Unsupported char/string.\n", yylineno, yycolumn);
+		}
+		else {
+			fprintf(stderr, "Error [Lexical] at line %d, Col %d: Mysterious character \'%s\'.\n", yylineno, yycolumn, yytext); 
+		}
+	}
+}
+	
 
 %%
 
 int yywrap(void)
 {
+	yy_flush_buffer(YY_CURRENT_BUFFER);
+	{BEGIN INITIAL;}
 	return 1;
 }
 
 void formerComment()
 {
-    char c, prev = 0;
+    char c = yyinput();
   
-	while ((c = yyinput()) != 0)
+	while (1)
 	{
-		if (c == '/' && prev == '*')
-			return;
-		prev = c;
-	}
-	if (isNewError(yylineno)){
-		fprintf(stderr, "Error [Lexical] at Line %d, Col %d: Unmatched comment for \'/*\'.\n", yylineno, yycolumn);
+		if (c == '*' ){
+			c = yyinput();
+			if (c == '/'){
+				break;
+			}
+			else{
+				unput(c);
+			}
+		}
+		else if(c == EOF){
+			if (isNewError(yylineno)){
+				fprintf(stderr, "Error [Lexical] at Line %d, Col %d: Unmatched comment for \"/*\".\n", yylineno, yycolumn);
+			}
+			break;
+		}
+		c = yyinput();
 	}
 }
 
 void latterComment(){
 	if (isNewError(yylineno)){
-		fprintf(stderr, "Error [Lexical] at Line %d, Col %d: Unmatched comment for \'*/\'.\n", yylineno, yycolumn);
+		fprintf(stderr, "Error [Lexical] at Line %d, Col %d: Unmatched comment for \"*/\".\n", yylineno, yycolumn);
 	}
 }
 

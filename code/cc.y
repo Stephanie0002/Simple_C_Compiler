@@ -5,10 +5,9 @@
 
 using namespace std;
 
-extern char *yytext;
-
 extern int yycolumn;
 extern int yylineno;
+extern char* yytext;
 
 int error_num = 0;
 int last_error_lineno = 0;
@@ -87,8 +86,9 @@ BType:
 ConstDef:
         IDENT '=' ConstInitVal{$$ = createGrammarTree("ConstDef", 3, $1, $2, $3);}
     |   IDENT '[' ConstExp ']' '=' ConstInitVal{$$ = createGrammarTree("ConstDef", 6, $1, $2, $3, $4, $5, $6);}
-    // |   IDENT '[' ConstExp ']' error{if (isNewError(yylineno)) fprintf(stderr, "Error [Syntax] at Line %d, Col %d: Define an array without initialization.\n", yylineno, yycolumn);}
-    // |   IDENT '[' error ']' '=' error{if (isNewError(yylineno)) fprintf(stderr, "Error [Syntax] at Line %d, Col %d: Array Initialization without space definition.\n", yylineno, yycolumn);}
+    |   IDENT{if(isNewError(yylineno)) fprintf(stderr, "Error [Syntax] at Line %d, Col %d: Define const var without initialization.\n", yylineno, yycolumn);}
+    |   IDENT '[' ']'{if(isNewError(yylineno)) fprintf(stderr, "Error [Syntax] at Line %d, Col %d: Define const array without space specification.\n", yylineno, yycolumn);}
+    |   IDENT '[' ConstExp ']'{if(isNewError(yylineno)) fprintf(stderr, "Error [Syntax] at Line %d, Col %d: Define const array without initialization.\n", yylineno, yycolumn);}
     ;
 
 // 常量初值
@@ -118,7 +118,7 @@ VarDef:
     |   IDENT '[' ConstExp ']'{$$ = createGrammarTree("VarDef", 4, $1, $2, $3, $4);}
     |   IDENT '=' InitVal{$$ = createGrammarTree("VarDef", 3, $1, $2, $3);}
     |   IDENT '[' ConstExp ']' '=' InitVal{$$ = createGrammarTree("VarDef", 6, $1, $2, $3, $4, $5, $6);}
-    |   IDENT '[' ConstExp ']' '[' ConstExp ']'{if (isNewError(yylineno)) fprintf(stderr, "Error [Syntax] at Line %d, Col %d: Don't support 2d array.\n", yylineno, yycolumn, yytext);}
+    |   IDENT '[' ']'{if(isNewError(yylineno)) fprintf(stderr, "Error [Syntax] at Line %d, Col %d: Define an array without space specification.\n", yylineno, yycolumn);}
     ;
 
 // 变量初值
@@ -183,7 +183,7 @@ Stmt:
     |   BREAK ';'{$$ = createGrammarTree("Stmt", 2, $1, $2);}
     |   CONTINUE ';'{$$ = createGrammarTree("Stmt", 2, $1, $2);}
     |   RETURN Exp ';'{$$ = createGrammarTree("Stmt", 3, $1, $2, $3);}
-    |   Exp '=' LVal{if (isNewError(yylineno)) fprintf(stderr, "Error [Syntax] at Line %d, Col %d: Expression's left side must be a changeable value.\n", yylineno, yycolumn);}
+    |   error ';' {if(isNewError(yylineno)) fprintf(stderr, "Error [Syntax] at Line %d Col %d: Syntax error \'%s\'.\n", yylineno, yycolumn, yytext);}
     ;
 
 // 表达式
@@ -283,7 +283,7 @@ ConstExp:
 void yyerror(char const *s)
 {
     if (isNewError(yylineno)){
-        fprintf(stderr, "Error [Syntax] at Line %d, Col %d: %s.\n", yylineno, yycolumn, s);
+        fprintf(stderr, "Error [Syntax] at Line %d, Col %d: %s \'%s\'.\n", yylineno, yycolumn, s, yytext);
     }
 }
 
