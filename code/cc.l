@@ -1,4 +1,5 @@
 %option yylineno
+%option yywrap
 
 %{
 #include <cstdio>
@@ -55,13 +56,7 @@ BOOL		"true"|"false"
 "continue"		{ count(); yylval.node = createGrammarTree("CONTINUE", 0, yylineno);	return(CONTINUE); }
 "return"		{ count(); yylval.node = createGrammarTree("RETURN", 0, yylineno); 	return(RETURN); }
 
-{L}({L}|{D})*   { 
-	if (yytext[0] >= '0' && yytext[0] <= '9') { 
-		if (isNewError(yylineno)){
-			fprintf(stderr, "Error [Lexical] at line %d, Col %d: Illegal identifier begin with number \'%d\'\n", yylineno, yycolumn, yytext[0]);
-		}
-	}
-	count(); yylval.node = createGrammarTree("IDENT", 0, yylineno);  return(IDENT);  }
+{L}({L}|{D})*   { count(); yylval.node = createGrammarTree("IDENT", 0, yylineno);  return(IDENT);  }
 {INT}  			{ count(); yylval.node = createGrammarTree("NUMBER", 0, yylineno); return(NUMBER); }
 
 "&&"	{ count(); yylval.node = createGrammarTree("AND_OP", 0, yylineno);	return(AND_OP); }
@@ -106,6 +101,8 @@ BOOL		"true"|"false"
 
 int yywrap(void)
 {
+	yy_flush_buffer(YY_CURRENT_BUFFER);
+	{BEGIN INITIAL;}
 	return 1;
 }
 

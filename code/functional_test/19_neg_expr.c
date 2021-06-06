@@ -1,10 +1,9 @@
 int a;
 int b;
 int main(){
-	a = getint();
-	b = getint();
+	a = 2;
+	b = 3;
 	int c;
 	c = -(a + b);
-                putint(c);
 	return 0;
 }

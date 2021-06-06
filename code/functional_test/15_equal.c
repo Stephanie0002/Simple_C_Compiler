@@ -1,8 +1,8 @@
 int a;
 int b;
 int main(){
-	a = getint();
-	b = getint();
+	a = 3;
+	b = 2;
 	if ( a == b ){
 		return 1;
 	}

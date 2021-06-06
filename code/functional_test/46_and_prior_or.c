@@ -11,7 +11,6 @@ int main () {
     int t;
     if (d % (b - a) != 0 && a > 0 || d % 3 == 0 && c > 0) {
         t = d + c - -b;
-        putint(t);
     }
     return 0;
 }

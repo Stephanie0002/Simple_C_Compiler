@@ -19,6 +19,5 @@ int main() {
     result[2] = -7;
     int x;
     x = result[_getMaxOfAll(result, 3)];
-    putint(x);
     return 0;
 }

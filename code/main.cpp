@@ -14,6 +14,8 @@ extern int error_num;
 extern int last_error_lineno;
 extern int yylineno;
 extern int yycolumn;
+extern FILE *yyin;
+extern FILE *yyout;
 extern struct grammarTree *root;
 
 int main(int argc, char **argv)
@@ -46,16 +48,16 @@ int main(int argc, char **argv)
     {
         string filename = argv[i];
 
-        FILE *file = fopen(argv[i], "r");
-        if (!file)
+        FILE *yyin = fopen(argv[i], "r");
+        if (!yyin)
         {
-            fprintf(stderr, "Error [Others]: %s: No such file or directory.\n", filename.c_str());
+            fprintf(stderr, "Error [Others]: \"%s\": No such file or directory.\n", filename.c_str());
             continue;
         }
 
         printf("\n---Compile file %s:---\n", filename.c_str());
 
-        yyrestart(file);
+        yyrestart(yyin);
         yyparse();
 
         if (error_num == 0)
@@ -68,20 +70,20 @@ int main(int argc, char **argv)
             delete root;
             destroySymbolTable();
         }
-        else
-        {
-            if (error_num != 1)
-                fprintf(stderr, "%d errors occured when compiling.\n", error_num);
-            else
-                fprintf(stderr, "1 error occured when compiling.\n");
-            error_num = 0;
-            last_error_lineno = 1;
-            yylineno = 1;
-            yycolumn = 1;
-        }
 
+        if (error_num > 1)
+        {
+            fprintf(stderr, "%d errors occured when compiling.\n", error_num);
+        }
+        else if (error_num == 1)
+        {
+            fprintf(stderr, "1 error occured when compiling.\n");
+        }
+        error_num = 0;
+        last_error_lineno = 1;
         yylineno = 1;
-        fclose(file);
+        yycolumn = 1;
+        fclose(yyin);
     }
     return 0;
 }
