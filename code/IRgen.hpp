@@ -378,7 +378,7 @@ Value *GlblVarDefAST::codegen() {
         init = cast<ConstantInt>(vn.iv->codegen());
       }
       gv = new GlobalVariable(*TheModule, Builder->getInt32Ty(), isConst,
-                              GlobalVariable::CommonLinkage, init, vn.Name);
+                              GlobalVariable::ExternalLinkage, init, vn.Name);
       // Record in the NamedValues map.
       NamedValues[vn.Name] = gv;
     } else {
@@ -397,7 +397,7 @@ Value *GlblVarDefAST::codegen() {
         }
       }
       gv = new GlobalVariable(
-          *TheModule, ArrTy, isConst, GlobalVariable::CommonLinkage,
+          *TheModule, ArrTy, isConst, GlobalVariable::ExternalLinkage,
           ConstantArray::get(ArrTy, ArrayRef<Constant *>(init_ref)), vn.Name);
       // Record in the NamedValues map.
       NamedValues[vn.Name] = gv;
