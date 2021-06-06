@@ -9,7 +9,6 @@ int main()
     int k[b] = {1, 2};
     int l[2] = {1, 2};
     int m[l] = {1, 2};
-    int n = l;
     int o[2] = l;
     int j[l[5]] = {1, 2, 3};
     int p[2] = {l[1], 2};

@@ -1,0 +1,1 @@
+dir /b *.c >filename.txt

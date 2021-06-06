@@ -1,32 +1,23 @@
-int main()
-{
-    if (1)
-    {
-        while (1)
-        {
-            if (1)
-            {
+int main(){
+    if (1){
+        while (1){
+            if (1){
                 break;
             }
-            else
-            {
+            else{
                 continue;
             }
             break;
         }
     }
-
-    if (1)
-    {
+    if (1){
         break;
         continue;
-        if (1)
-        {
+        if (1){
             break;
             continue;
         }
-        else
-        {
+        else{
             break;
             continue;
         }

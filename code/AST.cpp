@@ -42,7 +42,7 @@ std::unique_ptr<VarDefAST> get_Decl_AST(const grammarTree *r, bool isGlbl) {
           auto pIV = pEQ->right;
           for (auto pExp = pIV->left->right; pExp->name != "}";
                pExp = pExp->right) {
-            civs.push_back(get_Exp_AST(pExp->left));
+            civs.push_back(get_Exp_AST(pExp));
           }
         }
         iv = std::make_unique<BlockAST>(std::move(civs));
@@ -82,7 +82,10 @@ get_BinExpr_AST(const grammarTree *r,
   return std::make_unique<BinaryExprAST>(op, std::move(lhs), std::move(rhs));
 }
 
+// iterative subroutine
 std::unique_ptr<ExprAST> get_Exp_AST(const grammarTree *r) {
+  // stop when back to root
+  const grammarTree *root_stash = r;
   // postorder: proc child from left to right, before root
   std::stack<const grammarTree *> in;
   std::stack<std::unique_ptr<ExprAST>> out;
@@ -127,9 +130,12 @@ std::unique_ptr<ExprAST> get_Exp_AST(const grammarTree *r) {
       out.push(std::make_unique<NumberExprAST>(
           std::strtol(r->content.c_str(), nullptr, 10)));
     }
+    // early exit
+    if (r == root_stash)
+      break;
     // maintain postorder
     for (r = r->right; r; r = r->left) {
-      //todo nasty we need to control the degree of trav
+      // todo nasty we need to control the degree of trav
       if (string("[]{}").find(r->name) != string::npos)
         break;
       in.push(r);

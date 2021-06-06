@@ -9,7 +9,6 @@ int main()
     const int k[b] = {1, 2};
     const int l[2] = {1, 2};
     const int m[l] = {1, 2};
-    const int n = l;
     const int o[2] = l;
     const int j[l[5]] = {1, 2, 3};
     const int p[2] = {l[1], 2};
