@@ -35,7 +35,7 @@ vector<mySymbol *> domain;
 bool cal_array_type = false;
 
 // Control Sentences
-bool if_stmt = false;
+bool while_stmt = false;
 
 bool checkProduction(const grammarTree *parent, int node_num, ...)
 {
@@ -278,11 +278,6 @@ void checkRepeatVarDef(mySymbol *symb, int lineno)
 
 void checkFuncRet(int lineno)
 {
-
-    // for (unsigned int i = 0; i < domain.size(); i--)
-    // {
-    //     printf("%s\n", domain.at(i)->name.c_str());
-    // }
     string data_type[] = {"BASIC", "ARRAY"};
     mySymbol *cur_domain = new mySymbol;
     for (unsigned int i = domain.size() - 1; i >= 0; i--)
@@ -451,6 +446,29 @@ void getDATA(myData *DATA, string name, string form)
             new_param->next = nullptr;
             new_param->para_name = name;
             func_call.push_back(new_param);
+        }
+    }
+}
+
+void checkControl(int lineno, string type)
+{
+    // Check in Current Domain, then the upper domain
+    mySymbol *cur_domain = new mySymbol;
+    bool error = true;
+    vector<mySymbol *>::reverse_iterator iter = domain.rbegin();
+    for (; iter != domain.rend(); ++iter)
+    {
+        if ((*iter)->symbol_type == VAR)
+        { // while domain
+            error = false;
+            break;
+        }
+    }
+    if (error)
+    {
+        if (isNewSemanticError(lineno))
+        {
+            fprintf(stderr, "Error [Semantic] at Line %d: \'%s\' can be only used in loop.\n", lineno, type.c_str());
         }
     }
 }
@@ -956,6 +974,9 @@ void analyseFuncDef(const grammarTree *node)
             // Only success FUNC definition will lead on analyse
             // However, variables not act like this
             analyseBlock(node->left->right->right->right->right->right, func_symbol);
+
+            domain.pop_back();
+            cur_domain_name = domain.back()->name;
         }
     }
     else
@@ -1068,24 +1089,7 @@ void analyseBlock(const grammarTree *node, mySymbol *symb)
     }
     if (checkProduction(node, 3, "{", "BlockItem_list", "}"))
     {
-        if (!is_last_domain_func)
-        {
-            string domain_name = "Blcok" + int2str(domain_id);
-            addDomain(domain_name, CONST);
-            domain_id++;
-            cur_domain_name = domain.back()->name;
-            analyseBlockItem_list(node->left->right, symb);
-            domain.pop_back();
-            cur_domain_name = domain.back()->name;
-        }
-        else
-        {
-            is_last_domain_func = false;
-
-            analyseBlockItem_list(node->left->right, symb);
-            domain.pop_back();
-            cur_domain_name = domain.back()->name;
-        }
+        analyseBlockItem_list(node->left->right, symb);
     }
     else
     {
@@ -1178,32 +1182,55 @@ void analyseStmt(const grammarTree *node, mySymbol *symb)
     else if (checkProduction(node, 1, "Block"))
     {
         // Infer: {}
-        analyseBlock(node->left, symb);
+        if (!is_last_domain_func)
+        {
+            string domain_name = "Block" + int2str(domain_id);
+            if (while_stmt)
+            {
+                addDomain(domain_name, VAR);
+                while_stmt = false;
+            }
+            else
+            {
+                addDomain(domain_name, CONST);
+            }
+            domain_id++;
+            cur_domain_name = domain.back()->name;
+            analyseBlock(node->left, symb);
+            domain.pop_back();
+            cur_domain_name = domain.back()->name;
+        }
+        else
+        {
+            is_last_domain_func = false;
+        }
     }
     else if (checkProduction(node, 5, "IF", "(", "Cond", ")", "Stmt"))
     {
 
         analyseCond(node->left->right->right, symb);
-        if_stmt = true;
         analyseStmt(node->left->right->right->right->right, symb);
-        if_stmt = false;
     }
     else if (checkProduction(node, 7, "IF", "(", "Cond", ")", "Stmt", "ELSE", "Stmt"))
     {
         analyseCond(node->left->right->right, symb);
         analyseStmt(node->left->right->right->right->right, symb);
-        analyseStmt(node->left->right->right->right->right->right, symb);
+        analyseStmt(node->left->right->right->right->right->right->right, symb);
     }
     else if (checkProduction(node, 5, "WHILE", "(", "Cond", ")", "Stmt"))
     {
         analyseCond(node->left->right->right, symb);
+        while_stmt = true;
         analyseStmt(node->left->right->right->right->right, symb);
+        while_stmt = false;
     }
     else if (checkProduction(node, 2, "BREAK", ";"))
     {
+        checkControl(node->left->lineno, "break");
     }
     else if (checkProduction(node, 2, "CONTINUE", ";"))
     {
+        checkControl(node->left->lineno, "continue");
     }
     else if (checkProduction(node, 3, "RETURN", "Exp", ";"))
     {
@@ -1872,6 +1899,16 @@ void printSymbolTable(myHashSet symbol_table)
         }
     }
     printf("\n");
+}
+
+void printDomain()
+{
+    printf("\n\ndomain:");
+    for (unsigned int i = 0; i < domain.size(); i++)
+    {
+        printf(" %s", domain.at(i)->name.c_str());
+    }
+    printf("\n\n");
 }
 
 void addNewEleToArray(myData *new_ele, mySymbol *symb)

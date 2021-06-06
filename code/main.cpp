@@ -14,8 +14,6 @@ extern int error_num;
 extern int last_error_lineno;
 extern int yylineno;
 extern int yycolumn;
-extern FILE *yyin;
-extern FILE *yyout;
 extern struct grammarTree *root;
 
 int main(int argc, char **argv)
@@ -53,6 +51,35 @@ int main(int argc, char **argv)
         {
             fprintf(stderr, "Error [Others]: \"%s\": No such file or directory.\n", filename.c_str());
             continue;
+        }
+
+        // Omit blank file
+        if (feof(yyin))
+        {
+            fclose(yyin);
+            printf("\n---Omit blank file %s:---\n", filename.c_str());
+            continue;
+        }
+
+        char ch;
+        bool is_blank_file = true;
+        while ((ch = fgetc(yyin)) != EOF)
+        {
+            if (ch != ' ' || ch != '\t' || ch != '\n' || ch != '\r' || ch != '\v' || ch != '\f')
+            {
+                is_blank_file = false;
+                break;
+            }
+        }
+        fclose(yyin);
+        if (is_blank_file)
+        {
+            printf("\n---Omit blank file %s:---\n", filename.c_str());
+            continue;
+        }
+        else
+        {
+            FILE *yyin = fopen(argv[i], "r");
         }
 
         printf("\n---Compile file %s:---\n", filename.c_str());

@@ -17,6 +17,7 @@ void checkFuncRet(int lineno);
 void checkFuncCall(string func_name, int lineno);
 bool checkNotDef(string name, int lineno, string form);
 void getDATA(myData *DATA, string name, string form);
+void checkControl(int lineno, string type);
 
 void addDomain(string domain_name, mySymbolType domain_type);
 void addNewEleToArray(myData *new_ele, mySymbol *symb);
@@ -65,5 +66,6 @@ void destroySymbolTable();
 void printProductionError(const grammarTree *node, const char *msg);
 int isNewSemanticError(int last_semantic_error_lineno);
 void printSymbolTable(myHashSet symbol_table);
+void printDomain();
 
 #endif
