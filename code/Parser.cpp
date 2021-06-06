@@ -12,13 +12,20 @@ int last_semantic_error_lineno = 0;
 bool check_array_index = false;
 bool check_array_init = false;
 
+// Const init
+bool check_const_init = false;
+bool check_var_init = false;
+
 // Exp
 bool cal_exp_val = false;
-vector<myOpd *> opds;
-vector<string> ops;
+bool check_assign = false;
+myDataType cur_op = BASIC;
+bool check_compare = false;
+bool set_init = false;
 
 // Func ret
 bool cal_ret_val = false;
+bool has_return = false;
 myData *func_ret;
 
 // Func call
@@ -36,6 +43,49 @@ bool cal_array_type = false;
 
 // Control Sentences
 bool while_stmt = false;
+
+void addBiuldInFunc()
+{
+    myData *int_type = new myData;
+    int_type->data_type = BASIC;
+    int_type->basic = INT;
+    int_type->is_r_value = false;
+
+    mySymbol *getint = createSymbol("getint", FUNC);
+    getint->func->ret_type = int_type;
+    getint->func->param_num = 0;
+    myParam *tmp = new myParam;
+    tmp->type = nullptr;
+    tmp->next = nullptr;
+    getint->func->param_list = tmp;
+    insert(symbol_table, getint);
+
+    mySymbol *putint = createSymbol("putint", FUNC);
+    putint->func->ret_type = int_type;
+    putint->func->param_num = 1;
+    myParam *tmp1 = new myParam;
+    tmp1->type = nullptr;
+    tmp1->next = nullptr;
+    putint->func->param_list = tmp1;
+    myParam *para1 = new myParam;
+    para1->type = int_type;
+    para1->next = nullptr;
+    addNewParamToParamList(para1, putint->func->param_list);
+    insert(symbol_table, putint);
+
+    mySymbol *putch = createSymbol("putch", FUNC);
+    putch->func->ret_type = int_type;
+    putch->func->param_num = 1;
+    myParam *tmp2 = new myParam;
+    tmp2->type = nullptr;
+    tmp2->next = nullptr;
+    putch->func->param_list = tmp2;
+    myParam *para2 = new myParam;
+    para2->type = int_type;
+    para2->next = nullptr;
+    addNewParamToParamList(para2, putch->func->param_list);
+    insert(symbol_table, putch);
+}
 
 bool checkProduction(const grammarTree *parent, int node_num, ...)
 {
@@ -182,109 +232,15 @@ void checkRepeatVarDef(mySymbol *symb, int lineno)
     }
 }
 
-// void checkExp(int lineno)
-// {
-//     // Simple exp : a op b;
-//     // printf("\n\nopds stack:");
-//     // for (int i = 0; i < opds.size(); i++)
-//     // {
-//     //     printf(" %s", opds.at(i)->name.c_str());
-//     // }
-//     // printf("\n\n");
-
-//     myOpd *right_opd = opds.back();
-//     opds.pop_back();
-//     myOpd *left_opd = opds.back();
-//     string op = ops.back();
-//     string des_op = des_ops.back();
-//     ops.pop_back();
-//     des_ops.pop_back();
-//     checkSimpleExp(lineno, left_opd, right_opd, op, des_op);
-// }
-
-// void checkSimpleExp(int lineno, myOpd *left_opd, myOpd *right_opd, string op, string des_op)
-// {
-//     string data_type[] = {"BASIC", "ARRAY"};
-//     string name1 = left_opd->name;
-//     myData *t1 = left_opd->data;
-//     string name2 = right_opd->name;
-//     myData *t2 = right_opd->data;
-//     if (op == "=")
-//     {
-//         // Check
-//         if (t1->data_type == ARRAY || t1->is_r_value)
-//         {
-//             string is_r_value = "";
-//             if (t1->is_r_value)
-//             {
-//                 is_r_value = "CONST ";
-//             }
-//             if (isNewSemanticError(lineno))
-//             {
-//                 fprintf(stderr, "Error [Semantic] at Line %d: Expression's left side should be a changeable L value. Get %s(%s%s).\n", lineno, name1.c_str(), is_r_value.c_str(), data_type[t1->data_type].c_str());
-//                 return;
-//             }
-//         }
-
-//         if (t1->data_type != t2->data_type)
-//         {
-//             if (isNewSemanticError(lineno))
-//             {
-//                 fprintf(stderr, "Error [Semantic] at Line %d: Can't %s %s(%s) to %s(%s).\n", lineno, des_op.c_str(), name2.c_str(), data_type[t2->data_type].c_str(), name1.c_str(), data_type[t1->data_type].c_str());
-//                 return;
-//             }
-//         }
-//     }
-//     else if (op == "+" || op == "*")
-//     {
-//         if (t1->data_type != t2->data_type)
-//         {
-//             if (isNewSemanticError(lineno))
-//             {
-//                 fprintf(stderr, "Error [Semantic] at Line %d: Can't %s %s(%s) to %s(%s).\n", lineno, des_op.c_str(), name2.c_str(), data_type[t2->data_type].c_str(), name1.c_str(), data_type[t1->data_type].c_str());
-//                 return;
-//             }
-//         }
-//     }
-//     else if (op == "-" || op == "/" || op == "%")
-//     {
-//         if (t1->data_type != t2->data_type)
-//         {
-//             if (isNewSemanticError(lineno))
-//             {
-//                 fprintf(stderr, "Error [Semantic] at Line %d: Can't %s %s(%s) from %s(%s).\n", lineno, des_op.c_str(), name2.c_str(), data_type[t2->data_type].c_str(), name1.c_str(), data_type[t1->data_type].c_str());
-//                 return;
-//             }
-//         }
-//     }
-//     else if (op == ">=" || op == "<=" || op == ">" || op == "<")
-//     {
-//         if (t1->data_type != t2->data_type)
-//         {
-//             if (isNewSemanticError(lineno))
-//             {
-//                 fprintf(stderr, "Error [Semantic] at Line %d: Can't %s %s(%s) between %s(%s).\n", lineno, des_op.c_str(), name2.c_str(), data_type[t2->data_type].c_str(), name1.c_str(), data_type[t1->data_type].c_str());
-//                 return;
-//             }
-//         }
-//     }
-// }
-
-// void clearExp()
-// {
-//     opds.clear();
-//     ops.clear();
-// }
-
 void checkFuncRet(int lineno)
 {
+    has_return = true;
     string data_type[] = {"BASIC", "ARRAY"};
     mySymbol *cur_domain = new mySymbol;
     for (unsigned int i = domain.size() - 1; i >= 0; i--)
     {
         if (domain.at(i)->symbol_type == FUNC)
         {
-            // printf("\n\ncheck Func Repeat: %s\n\n", domain.at(i)->name.c_str());
             cur_domain = domain.at(i);
             break;
         }
@@ -327,14 +283,6 @@ void checkFuncCall(string func_name, int lineno)
                         if (isNewSemanticError(lineno))
                         {
                             fprintf(stderr, "Error [Semantic] at Line %d: Func %s call %s(%s) mismatches with definition %s(%s).\n", lineno, func_name.c_str(), (*p1)->para_name.c_str(), data_type[(*p1)->type->data_type].c_str(), p2->para_name.c_str(), data_type[p2->type->data_type].c_str());
-                            return;
-                        }
-                    }
-                    if ((*p1)->type->is_r_value != p2->type->is_r_value && p2->type->is_r_value)
-                    {
-                        if (isNewSemanticError(lineno))
-                        {
-                            fprintf(stderr, "Error [Semantic] at Line %d: Can't convert R_Val to L_Val.\n", lineno);
                             return;
                         }
                     }
@@ -393,7 +341,7 @@ bool checkNotDef(string name, int lineno, string form)
                             return false;
                         }
                     }
-                    getDATA(s->type, cur_name, form);
+                    getDATA(s->type, cur_name, form, lineno);
                     return true;
                 }
                 p = p->next;
@@ -408,7 +356,7 @@ bool checkNotDef(string name, int lineno, string form)
             {
                 if (param->para_name == cur_name)
                 {
-                    getDATA(param->type, cur_name, form);
+                    getDATA(param->type, cur_name, form, lineno);
                     return true;
                 }
                 param = param->next;
@@ -423,18 +371,75 @@ bool checkNotDef(string name, int lineno, string form)
     return false;
 }
 
-void getDATA(myData *DATA, string name, string form)
+void getDATA(myData *DATA, string name, string form, int lineno)
 {
-    if (form == "VAR") // Get real DATA
+    if (check_var_init)
     {
+        if (DATA->data_type == ARRAY)
+        {
+            if (isNewSemanticError(lineno))
+            {
+                fprintf(stderr, "Error [Semantic] at Line %d: Can't initialize var with ARRAY %s.\n", lineno, name.c_str());
+            }
+        }
+    }
+
+    if (form == "VAR")
+    {
+        if (cal_array_type)
+        {
+            if (!cal_call_val) // avoid array[func(array)]
+            {
+                if (DATA->data_type == ARRAY)
+                {
+                    if (isNewSemanticError(lineno))
+                    {
+                        fprintf(stderr, "Error [Semantic] at Line %d: ARRAY %s can't be another array's index.\n", lineno, name.c_str());
+                    }
+                }
+            }
+        }
         if (cal_exp_val)
         {
-            myOpd *tmp = new myOpd;
-            tmp->data = DATA;
-            tmp->name = name;
-            opds.push_back(tmp);
+            if (!cal_call_val)
+            { //  avoid func(array) + a + b
+                if (DATA->data_type == ARRAY)
+                {
+                    if (isNewSemanticError(lineno))
+                    {
+                        fprintf(stderr, "Error [Semantic] at Line %d: Can't mix ARRAY %s in INT expression.\n", lineno, name.c_str());
+                    }
+                }
+            }
+            if (check_assign)
+            {
+                if (DATA->is_r_value == true)
+                {
+                    if (isNewSemanticError(lineno))
+                    {
+                        fprintf(stderr, "Error [Semantic] at Line %d: Can't mix a LVal %s in calculation.\n", lineno, name.c_str());
+                    }
+                }
+            }
+            if (check_compare)
+            {
+                if (!set_init)
+                {
+                    cur_op = DATA->data_type;
+                    set_init = true;
+                }
+                else
+                {
+                    if (cur_op != DATA->data_type)
+                    {
+                        if (isNewSemanticError(lineno))
+                        {
+                            fprintf(stderr, "Error [Semantic] at Line %d: Can't compare between two different types.\n", lineno);
+                        }
+                    }
+                }
+            }
         }
-
         if (cal_ret_val)
         {
             func_ret = DATA;
@@ -446,6 +451,114 @@ void getDATA(myData *DATA, string name, string form)
             new_param->next = nullptr;
             new_param->para_name = name;
             func_call.push_back(new_param);
+        }
+    }
+    else if (form == "ARRAY")
+    {
+        // Return an ele of the array
+        if (cal_exp_val)
+        {
+            if (check_assign)
+            {
+                if (DATA->is_r_value)
+                {
+                    if (isNewSemanticError(lineno))
+                    {
+                        fprintf(stderr, "Error [Semantic] at Line %d: Can't mix ARRAY %s in INT expression.\n", lineno, name.c_str());
+                    }
+                }
+            }
+            if (check_compare)
+            {
+                if (!set_init)
+                {
+                    cur_op = DATA->data_type;
+                    set_init = true;
+                }
+                else
+                {
+                    if (cur_op != DATA->data_type)
+                    {
+                        if (isNewSemanticError(lineno))
+                        {
+                            fprintf(stderr, "Error [Semantic] at Line %d: Can't compare between two different types.\n", lineno);
+                        }
+                    }
+                }
+            }
+        }
+        if (cal_ret_val)
+        {
+            myData *tmp_data = new myData;
+            tmp_data->data_type = BASIC;
+            tmp_data->basic = INT;
+            tmp_data->is_r_value = DATA->is_r_value;
+            func_ret = tmp_data;
+        }
+        if (cal_call_val)
+        {
+            myParam *tmp_param = new myParam;
+            myData *tmp_data = new myData;
+            tmp_data->data_type = BASIC;
+            tmp_data->basic = INT;
+            tmp_data->is_r_value = DATA->is_r_value;
+            tmp_param->type = tmp_data;
+            tmp_param->next = nullptr;
+            tmp_param->para_name = name + ":ele";
+            func_call.push_back(tmp_param);
+        }
+    }
+    else
+    {
+        // Means we call func
+        if (cal_exp_val)
+        {
+            // Func must return int;
+            if (check_assign)
+            {
+                if (isNewSemanticError(lineno))
+                {
+                    fprintf(stderr, "Error [Semantic] at Line %d: Can't assign value to FUNC %s", lineno, name.c_str());
+                }
+            }
+            if (check_compare)
+            {
+                if (!set_init)
+                {
+                    cur_op = DATA->data_type;
+                    set_init = true;
+                }
+                else
+                {
+                    if (cur_op != DATA->data_type)
+                    {
+                        if (isNewSemanticError(lineno))
+                        {
+                            fprintf(stderr, "Error [Semantic] at Line %d: Can't compare between two different types.\n", lineno);
+                        }
+                    }
+                }
+            }
+        }
+        if (cal_ret_val)
+        {
+            myData *tmp = new myData;
+            tmp->data_type = BASIC;
+            tmp->is_r_value = DATA->is_r_value;
+            tmp->basic = INT;
+            func_ret = tmp;
+        }
+        if (cal_call_val)
+        {
+            myData *tmp = new myData;
+            tmp->data_type = BASIC;
+            tmp->is_r_value = false;
+            tmp->basic = INT;
+            myParam *tmp_param = new myParam;
+            tmp_param->type = tmp;
+            tmp_param->para_name = name + ":return";
+            tmp_param->next = nullptr;
+            func_call.push_back(tmp_param);
         }
     }
 }
@@ -485,6 +598,7 @@ void semanticInit(const grammarTree *root)
 {
     symbol_table = initHashSet(HASH_SIZE);
     addDomain("global", CONST);
+    addBiuldInFunc();
 
     if (debug)
     {
@@ -656,7 +770,10 @@ void analyseConstDef(const grammarTree *node, myData *type)
         // Infer: must be const int a = 1;
         mySymbol *constant_symbol = createSymbol(cur_domain_name + ":" + node->left->content, CONST);
         constant_symbol->type = type;
+
+        check_const_init = true;
         analyseConstInitVal(node->left->right->right, constant_symbol);
+        check_const_init = false;
 
         constant_symbol->type->data_type = BASIC;
         constant_symbol->type->is_r_value = true;
@@ -838,7 +955,9 @@ void analyseVarDef(const grammarTree *node, myData *type)
         var_symbol->type->data_type = BASIC;
         var_symbol->type->is_r_value = false;
 
+        check_var_init = true;
         analyseInitVal(node->left->right->right, var_symbol);
+        check_var_init = false;
 
         checkRepeatVarDef(var_symbol, node->left->lineno);
     }
@@ -977,6 +1096,18 @@ void analyseFuncDef(const grammarTree *node)
 
             domain.pop_back();
             cur_domain_name = domain.back()->name;
+
+            if (!has_return)
+            {
+                if (isNewSemanticError(node->left->lineno))
+                {
+                    fprintf(stderr, "Error [Semantic] at Line %d: FUNC %s doesn't return.\n", node->left->lineno, func_symbol->name.c_str());
+                }
+            }
+            else
+            {
+                has_return = false;
+            }
         }
     }
     else
@@ -1161,12 +1292,12 @@ void analyseStmt(const grammarTree *node, mySymbol *symb)
     if (checkProduction(node, 4, "LVal", "=", "Exp", ";"))
     {
         // Infer: a=b;
-        cal_array_type = true;
-
-        ops.push_back("=");
-
         cal_exp_val = true;
+
+        check_assign = true;
         analyseLVal(node->left, symb);
+        check_assign = false;
+
         analyseExp(node->left->right->right, symb);
         cal_exp_val = false;
     }
@@ -1237,6 +1368,7 @@ void analyseStmt(const grammarTree *node, mySymbol *symb)
         // One function may have many return
         cal_ret_val = true;
         analyseExp(node->left->right, symb);
+        // printf("\n\n%d\n\n", );
         checkFuncRet(node->left->lineno);
         cal_ret_val = false;
     }
@@ -1311,14 +1443,21 @@ void analyseLVal(const grammarTree *node, mySymbol *symb)
         {
             if (isNewSemanticError(node->left->lineno))
             {
-                fprintf(stderr, "Error [Semantic] at Line %d: Can't define an array's size with NOT-NUMBER.\n", node->left->lineno);
+                fprintf(stderr, "Error [Semantic] at Line %d: Can't define an array's size with NOT-NUMBER %s.\n", node->left->lineno, node->left->content.c_str());
             }
         }
         if (check_array_init)
         {
             if (isNewSemanticError(node->left->lineno))
             {
-                fprintf(stderr, "Error [Semantic] at Line %d: Can't initialize an array with NOT-NUMBER.\n", node->left->lineno);
+                fprintf(stderr, "Error [Semantic] at Line %d: Can't initialize an array with NOT-NUMBER %s.\n", node->left->lineno, node->left->content.c_str());
+            }
+        }
+        if (check_const_init)
+        {
+            if (isNewSemanticError(node->left->lineno))
+            {
+                fprintf(stderr, "Error [Semantic] at Line %d: Can't initialize const with NOT-NUMBER %s.\n", node->left->lineno, node->left->content.c_str());
             }
         }
     }
@@ -1326,22 +1465,34 @@ void analyseLVal(const grammarTree *node, mySymbol *symb)
     {
         // Infer: ARRAY
         myData *DATA = analyseBType(node->left);
-        checkNotDef(node->left->content, node->left->lineno, "ARRAY");
+        if (!checkNotDef(node->left->content, node->left->lineno, "ARRAY"))
+        {
+            return;
+        }
         if (check_array_index)
         {
             if (isNewSemanticError(node->left->lineno))
             {
-                fprintf(stderr, "Error [Semantic] at Line %d: Can't define an array's size with NOT-NUMBER.\n", node->left->lineno);
+                fprintf(stderr, "Error [Semantic] at Line %d: Can't define an array's size with NOT-NUMBER %s.\n", node->left->lineno, node->left->content.c_str());
             }
         }
         if (check_array_init)
         {
             if (isNewSemanticError(node->left->lineno))
             {
-                fprintf(stderr, "Error [Semantic] at Line %d: Can't initialize an array with NOT-NUMBER.\n", node->left->lineno);
+                fprintf(stderr, "Error [Semantic] at Line %d: Can't initialize an array with NOT-NUMBER %s.\n", node->left->lineno, node->left->content.c_str());
             }
         }
+        if (check_var_init)
+        {
+            if (isNewSemanticError(node->left->lineno))
+            {
+                fprintf(stderr, "Error [Semantic] at Line %d: Can't initialize var with ARRAY %s.\n", node->left->lineno, node->left->content.c_str());
+            }
+        }
+        cal_array_type = true;
         analyseExp(node->left->right->right, symb);
+        cal_array_type = false;
     }
     else
     {
@@ -1370,43 +1521,75 @@ void analysePrimaryExp(const grammarTree *node, mySymbol *symb)
     }
     else if (checkProduction(node, 1, "NUMBER"))
     {
-        if (cal_exp_val)
-        {
-            // LVal is a number
-            myData *tmp = new myData;
-            tmp->data_type = BASIC;
-            tmp->basic = INT;
-            tmp->is_r_value = true;
-            tmp->value = str2int(node->left->content);
-            myOpd *tmp_opd = new myOpd;
-            tmp_opd->data = tmp;
-            tmp_opd->name = cur_domain_name + ":" + node->left->content;
-            opds.push_back(tmp_opd);
-        }
         if (cal_array_type)
         {
+            if (cal_call_val)
+            {
+                myData *param_type = new myData;
+                param_type->data_type = BASIC;
+                param_type->is_r_value = false;
+                param_type->basic = INT;
+                param_type->value = str2int(node->left->content);
+                myParam *new_param = new myParam;
+                new_param->type = param_type;
+                new_param->next = nullptr;
+                new_param->para_name = cur_domain_name + ":" + node->left->content;
+                func_call.push_back(new_param);
+            }
         }
-        if (cal_call_val)
+        else
         {
-            myData *param_type = new myData;
-            param_type->data_type = BASIC;
-            param_type->is_r_value = false;
-            param_type->basic = INT;
-            param_type->value = str2int(node->left->content);
-            myParam *new_param = new myParam;
-            new_param->type = param_type;
-            new_param->next = nullptr;
-            new_param->para_name = cur_domain_name + ":" + node->left->content;
-            func_call.push_back(new_param);
-        }
-        if (cal_ret_val)
-        {
-            myData *tmp = new myData;
-            tmp->data_type = BASIC;
-            tmp->basic = INT;
-            tmp->is_r_value = true;
-            tmp->value = str2int(node->left->content);
-            func_ret = tmp;
+            if (cal_exp_val)
+            {
+                // LVal is a number
+                if (check_assign)
+                {
+                    if (isNewSemanticError(node->left->lineno))
+                    {
+                        fprintf(stderr, "Error [Semantic] at Line %d: NUMBER %s can't be used as left value.\n", node->left->lineno, node->left->content.c_str());
+                    }
+                }
+                if (check_compare)
+                {
+                    if (!set_init)
+                    {
+                        cur_op = BASIC;
+                        set_init = true;
+                    }
+                    else
+                    {
+                        if (cur_op != BASIC)
+                        {
+                            if (isNewSemanticError(node->left->lineno))
+                            {
+                                fprintf(stderr, "Error [Semantic] at Line %d: Can't compare between two different types.\n", node->left->lineno);
+                            }
+                        }
+                    }
+                }
+            }
+            if (cal_call_val)
+            {
+                myData *param_type = new myData;
+                param_type->data_type = BASIC;
+                param_type->is_r_value = false;
+                param_type->basic = INT;
+                param_type->value = str2int(node->left->content);
+                myParam *new_param = new myParam;
+                new_param->type = param_type;
+                new_param->next = nullptr;
+                new_param->para_name = cur_domain_name + ":" + node->left->content;
+                func_call.push_back(new_param);
+            }
+            if (cal_ret_val)
+            {
+                myData *tmp = new myData;
+                tmp->data_type = BASIC;
+                tmp->basic = INT;
+                tmp->is_r_value = true;
+                tmp->value = str2int(node->left->content);
+                func_ret = tmp;
+            }
         }
 
         if (symb->type->data_type == BASIC)
@@ -1465,28 +1648,15 @@ void analyseUnaryExp(const grammarTree *node, mySymbol *symb)
     {
         if (!checkNotDef(node->left->content, node->left->lineno, "FUNC"))
         {
-            if (cal_exp_val)
-            {
-                cal_exp_val = false;
-            }
             return;
         }
 
         cal_call_val = true;
         analyseFuncRParams(node->left->right->right, symb);
+        // printFuncCall();
         checkFuncCall(node->left->content, node->left->lineno);
         func_call.clear();
         cal_call_val = false;
-
-        if (cal_ret_val)
-        {
-            myData *tmp = new myData;
-            tmp->data_type = BASIC;
-            tmp->basic = INT;
-            tmp->is_r_value = true;
-            tmp->value = symb->func->ret_type->value;
-            func_ret = tmp;
-        }
     }
     else if (checkProduction(node, 2, "UnaryOp", "UnaryExp"))
     {
@@ -1566,10 +1736,6 @@ void analyseAddExp(const grammarTree *node, mySymbol *symb)
     }
     else if (checkProduction(node, 3, "AddExp", "+", "MulExp"))
     {
-
-        cal_array_type = true;
-
-        ops.push_back("+");
         cal_exp_val = true;
         analyseAddExp(node->left, symb);
         analyseMulExp(node->left->right->right, symb);
@@ -1577,11 +1743,6 @@ void analyseAddExp(const grammarTree *node, mySymbol *symb)
     }
     else if (checkProduction(node, 3, "AddExp", "-", "MulExp"))
     {
-
-        cal_array_type = true;
-
-        ops.push_back("-");
-
         cal_exp_val = true;
         analyseAddExp(node->left, symb);
         analyseMulExp(node->left->right->right, symb);
@@ -1610,10 +1771,6 @@ void analyseMulExp(const grammarTree *node, mySymbol *symb)
     }
     else if (checkProduction(node, 3, "MulExp", "*", "UnaryExp"))
     {
-
-        cal_array_type = true;
-        ops.push_back("*");
-
         cal_exp_val = true;
         analyseMulExp(node->left, symb);
         analyseUnaryExp(node->left->right->right, symb);
@@ -1621,10 +1778,6 @@ void analyseMulExp(const grammarTree *node, mySymbol *symb)
     }
     else if (checkProduction(node, 3, "MulExp", "/", "UnaryExp"))
     {
-        cal_array_type = true;
-
-        ops.push_back("/");
-
         cal_exp_val = true;
         analyseMulExp(node->left, symb);
         analyseUnaryExp(node->left->right->right, symb);
@@ -1632,10 +1785,6 @@ void analyseMulExp(const grammarTree *node, mySymbol *symb)
     }
     else if (checkProduction(node, 3, "MulExp", "%", "UnaryExp"))
     {
-
-        cal_array_type = true;
-        ops.push_back("%");
-
         cal_exp_val = true;
         analyseMulExp(node->left, symb);
         analyseUnaryExp(node->left->right->right, symb);
@@ -1664,10 +1813,6 @@ void analyseRelExp(const grammarTree *node, mySymbol *symb)
     }
     else if (checkProduction(node, 3, "RelExp", "<", "AddExp"))
     {
-        cal_array_type = true;
-
-        ops.push_back("<");
-
         cal_exp_val = true;
         analyseRelExp(node->left, symb);
         analyseAddExp(node->left->right->right, symb);
@@ -1675,9 +1820,6 @@ void analyseRelExp(const grammarTree *node, mySymbol *symb)
     }
     else if (checkProduction(node, 3, "RelExp", ">", "AddExp"))
     {
-        ops.push_back(">");
-        cal_array_type = true;
-
         cal_exp_val = true;
         analyseRelExp(node->left, symb);
         analyseAddExp(node->left->right->right, symb);
@@ -1685,10 +1827,6 @@ void analyseRelExp(const grammarTree *node, mySymbol *symb)
     }
     else if (checkProduction(node, 3, "RelExp", "LE_OP", "AddExp"))
     {
-        ops.push_back("<=");
-
-        cal_array_type = true;
-
         cal_exp_val = true;
         analyseRelExp(node->left, symb);
         analyseAddExp(node->left->right->right, symb);
@@ -1696,8 +1834,6 @@ void analyseRelExp(const grammarTree *node, mySymbol *symb)
     }
     else if (checkProduction(node, 3, "RelExp", "GE_OP", "AddExp"))
     {
-        ops.push_back(">=");
-
         cal_exp_val = true;
         analyseRelExp(node->left, symb);
         analyseAddExp(node->left->right->right, symb);
@@ -1726,13 +1862,21 @@ void analyseEqExp(const grammarTree *node, mySymbol *symb)
     }
     else if (checkProduction(node, 3, "EqExp", "EQ_OP", "RelExp"))
     {
+        check_compare = true;
+        cal_exp_val = true;
         analyseEqExp(node->left, symb);
         analyseRelExp(node->left->right->right, symb);
+        check_compare = false;
+        cal_exp_val = false;
     }
     else if (checkProduction(node, 3, "EqExp", "NE_OP", "RelExp"))
     {
+        check_compare = true;
+        cal_exp_val = true;
         analyseEqExp(node->left, symb);
         analyseRelExp(node->left->right->right, symb);
+        check_compare = false;
+        cal_exp_val = false;
     }
     else
     {
@@ -1819,7 +1963,8 @@ void destroySymbolTable()
     func_call.clear();
 
     semantic_error_num = 0;
-    last_semantic_error_lineno = 1;
+    last_semantic_error_lineno = 0;
+    has_return = false;
 }
 
 void printProductionError(const grammarTree *node, const char *msg)
@@ -1907,6 +2052,16 @@ void printDomain()
     for (unsigned int i = 0; i < domain.size(); i++)
     {
         printf(" %s", domain.at(i)->name.c_str());
+    }
+    printf("\n\n");
+}
+
+void printFuncCall()
+{
+    printf("\n\nFunc Call:");
+    for (unsigned int i = 0; i < func_call.size(); i++)
+    {
+        printf(" %s", func_call.at(i)->para_name.c_str());
     }
     printf("\n\n");
 }

@@ -90,9 +90,9 @@ int main(int argc, char **argv)
 
 		if (error_num == 0)
 		{
-			//int semantic_error_num = semanticAnalysis(root, verbose);
+			int semantic_error_num = semanticAnalysis(root, verbose);
 
-			//error_num += semantic_error_num;
+			error_num += semantic_error_num;
 
 			printf("\n");
 
@@ -103,7 +103,7 @@ int main(int argc, char **argv)
 				IR_entry(root, filename);
 
 			delete root;
-			//destroySymbolTable();
+			destroySymbolTable();
 		}
 
 		if (error_num > 1)

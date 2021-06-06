@@ -6,7 +6,7 @@ filename=['00_main.c','01_var_defn.c','02_var_defn2.c',\
           '06_mod.c','06_var_defn_func.c','07_comment1.c',\
           '08_arr_assign.c','08_comment2.c','09_if.c',\
           '10_break.c','10_if_else.c','11_continue.c',\
-          '11_while.c','12_getint.c','13_and.c',\
+          '11_while.c','13_and.c',\
           '14_or.c','15_equal.c','16_greater_eq.c',\
           '16_nequal.c','17_less.c','17_less_eq.c',\
           '18_cal_prio.c','19_neg_expr.c','20_arr_sum.c',\
@@ -34,8 +34,8 @@ with open('LLtoBCtoS.txt','w') as file:
         file.write('llvm-as '+name+'.ll -o '+name+'.bc\n')
         print('llc '+name+'.bc -o '+name+'.s')
         file.write('llc '+name+'.bc -o '+name+'.s\n')
-        print('clang '+name+'.s -o '+name+'.exe')
-        file.write('clang '+name+'.s -o '+name+'.exe\n')
+        # print('clang '+name+'.s -l ./x64/Debug/libsysy -o '+name+'.exe')
+        # file.write('clang '+name+'.s -l ./x64/Debug/libsysy -o '+name+'.exe\n')
         
 with open('EXEC.txt','w') as file:
     print('set TEST_FILE_CC=')
