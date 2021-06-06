@@ -1,10 +1,10 @@
 int a[5];
 int main(){
-	a[0] = 1;
-	a[1] = 2;
-	a[2] = 3;
-	a[3] = 4;
-	a[4] = 5;
+	a[0] = getint();
+	a[1] = getint();
+	a[2] = getint();
+	a[3] = getint();
+	a[4] = getint();
 	int cnt;
 	cnt = 4;
 	int sum;

@@ -6,7 +6,6 @@ set ERROR_FILE_CC=imagine_file.c ../test/error_test/00_undef_keyword.c ../test/e
 flex cc.l
 bison -vdty cc.y
 g++ -std=c++11 -o cc main.cpp grammarTree.cpp Parser.cpp Symbol.cpp hashSet.cpp utils.cpp lex.yy.c y.tab.c
-cc false %TEST_FILE_CC%
-cc false %ERROR_FILE_CC%
-@REM cc true ../test/error_test/18_break_continue_error.c
+cc false %TEST_FILE_CC% %ERROR_FILE_CC%
+@REM cc true ../test/error_test/17_func_ret_error.c
 @REM cc true ./functional_test/42_index_func_ret.c

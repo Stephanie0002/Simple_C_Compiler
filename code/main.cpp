@@ -16,6 +16,10 @@ extern int yylineno;
 extern int yycolumn;
 extern struct grammarTree *root;
 
+int success_file_num = 0;
+int input_file_num = 0;
+int cmd_file_num = 0;
+
 int main(int argc, char **argv)
 {
     if (argc <= 1)
@@ -45,6 +49,7 @@ int main(int argc, char **argv)
     for (int i = start; i < argc; i++)
     {
         string filename = argv[i];
+        cmd_file_num++;
 
         FILE *yyin = fopen(argv[i], "r");
         if (!yyin)
@@ -60,7 +65,6 @@ int main(int argc, char **argv)
             printf("\n---Omit blank file %s:---\n", filename.c_str());
             continue;
         }
-
         char ch;
         bool is_blank_file = true;
         while ((ch = fgetc(yyin)) != EOF)
@@ -80,6 +84,7 @@ int main(int argc, char **argv)
         else
         {
             FILE *yyin = fopen(argv[i], "r");
+            input_file_num++;
         }
 
         printf("\n---Compile file %s:---\n", filename.c_str());
@@ -96,6 +101,8 @@ int main(int argc, char **argv)
 
             delete root;
             destroySymbolTable();
+
+            success_file_num++;
         }
 
         if (error_num > 1)
@@ -107,10 +114,13 @@ int main(int argc, char **argv)
             fprintf(stderr, "1 error occured when compiling.\n");
         }
         error_num = 0;
-        last_error_lineno = 1;
+        last_error_lineno = 0;
         yylineno = 1;
         yycolumn = 1;
         fclose(yyin);
     }
+    printf("\n---%d files has been typed to compile!---\n", cmd_file_num);
+    printf("\n---%d files has been successfully entered!---\n", input_file_num);
+    printf("\n---%d files has been successfully compiled and run!---\n", success_file_num);
     return 0;
 }

@@ -11,9 +11,11 @@ int main () {
     int t;
     if (b + c == a && d != a / 2) {
         t = b + c / d * 2;
+        putint(t);
     }
     if (c < 0 || a - c == b && a != d * 2) {
         t = 1;
+        putint(t);
     }
     return 0;
 }

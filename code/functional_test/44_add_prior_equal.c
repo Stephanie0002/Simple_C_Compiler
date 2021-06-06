@@ -9,9 +9,11 @@ int main () {
     int t;
     if (c + a != b) {
         t = c % -b;
+        putint(t);
     }
     if (b - c == a) {
         t = c%b+b;
+        putint(t);
     }
     return 0;
 }

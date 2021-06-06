@@ -10,5 +10,6 @@ int main() {
     result[2] = 3;
     int t;
     t = result[(a % b + b) / 5 - 2];
+    putint(t);
     return 0;
 }

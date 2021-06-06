@@ -74,12 +74,6 @@ struct SymbolList_
     mySymbolList *next;
 };
 
-typedef struct Opd_
-{
-    myData *data;
-    string name;
-} myOpd;
-
 mySymbol *createSymbol(string name, mySymbolType type);
 void printDataType(myData *data);
 

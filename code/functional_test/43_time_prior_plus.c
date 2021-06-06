@@ -9,5 +9,6 @@ int main() {
     int d;
     d = -4;
     a = a + c * d - b % (a + d) / a;
+    putint(a);
     return 0;
 }
