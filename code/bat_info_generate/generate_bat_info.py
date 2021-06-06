@@ -23,7 +23,7 @@ filename=['00_main.c','01_var_defn.c','02_var_defn2.c',\
           '47_minus_with_sub.c','49_decl_in_defn.c',\
           '50_recursion_test1.c']
 error_file=[]
-
+py='./viewTree/'
 ir='./ir/'
 fun='./functional_test/'
 
@@ -49,6 +49,6 @@ with open('PY_Graph.txt','w') as file:
     print('set TEST_FILE_PY=')
     file.write('set TEST_FILE_PY=')
     for name in filename:
-        name=fun+name
-        print('-path '+name+' ')
-        file.write('-path '+name+' ')
+        name=py+name
+        print('-path '+name+'_node_tree.txt ')
+        file.write('-path '+name+'_node_tree.txt ')
