@@ -10,30 +10,6 @@ target: LLVM IR
 - IF: 09 10
 - WHILE: 10 11
 
-# 资源
-
-## 教程
-
-- https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/index.html
-- 二手中文 https://llvm-tutorial-cn.readthedocs.io/en/latest/index.html
-- 系列 逐步讲解 https://www.bilibili.com/video/av626821579/
-
-测试人员注意
-
-- LLVM IR 指令速学 https://zhuanlan.zhihu.com/p/64427829
-
-## 参考
-
-- 稍微友好一些 https://llvm.org/docs/ProgrammersManual.html
-- https://llvm.org/docs/LangRef.html
-- https://llvm.org/doxygen/classllvm_1_1IRBuilderBase.html
-
-## 前人工作借鉴
-
-- w/ English report: https://github.com/huangyangyi/Our-Pascal-Compiler
-- 介绍了完整流水线 http://www.cppblog.com/woaidongmao/archive/2009/11/11/100693.aspx https://github.com/lsegal/my_toy_compiler
-- GitHub 搜 zju llvm 还可扒到若干仓库，参考价值略逊
-
 # install
 
 Do NOT use prebuilt binaries. Follow https://llvm.org/docs/GettingStartedVS.html#getting-started w/ adjustments:
