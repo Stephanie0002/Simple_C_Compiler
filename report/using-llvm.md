@@ -72,3 +72,5 @@ An alternative approach will be `AST -> 拍脑袋 IR -> Target Arch Assembly Tex
 ```powershell
 code> lli  --dlopen="x64/Debug/libsysy.dll" .\main.ll
 ```
+
+https://llvm.org/docs/GetElementPtr.html#why-is-the-extra-0-index-required

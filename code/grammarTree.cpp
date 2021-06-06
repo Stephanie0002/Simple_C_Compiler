@@ -293,7 +293,7 @@ grammarTree *grammarTree::tailor_inner()
 				return fold_lchain();
 			}
 		}
-		else if (name == "Exp")
+		else if (name == "Exp" || name == "ConstExp")
 		{
 			if (nb_child() == 1)
 			{

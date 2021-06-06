@@ -90,14 +90,21 @@ Value *NumberExprAST::codegen() {
 
 Value *VariableExprAST::codegen() {
   // Look this variable up in the function.
-  Value *V = NamedValues[Name];
-  if (!V)
+  Value *var = NamedValues[Name];
+  if (!var)
     return LogErrorV("Unknown variable name");
   //? responsibility
   if (idx) {
-    V = Builder->CreateGEP(Builder->getInt32Ty(), V, idx->codegen(), "arridx");
+    std::vector<Value *> Idx{};
+    // todo tmp patch
+    // cause: llvm gv is always a ptr (to ArrTy) while alloca simply ret i32*
+    if (var->getType()->getContainedType(0)->isArrayTy()) {
+      Idx.push_back(Builder->getInt32(0));
+    }
+    Idx.push_back(idx->codegen());
+    var = Builder->CreateGEP(var, Idx, "arridx");
   }
-  return Builder->CreateLoad(Builder->getInt32Ty(), V, Name);
+  return Builder->CreateLoad(Builder->getInt32Ty(), var, Name);
 }
 
 Value *UnaryExprAST::codegen() {
@@ -182,8 +189,13 @@ Value *VarAssignAST::codegen() {
   auto val = RHS->codegen();
   auto var = NamedValues[LHS->Name];
   if (LHS->idx) {
-    Value *Idx = LHS->idx->codegen();
-    var = Builder->CreateGEP(Builder->getInt32Ty(), var, Idx, "arridx");
+    std::vector<Value *> Idx{};
+    //todo tmp patch; 
+    if (var->getType()->getContainedType(0)->isArrayTy()) {
+      Idx.push_back(Builder->getInt32(0));
+    }
+    Idx.push_back(LHS->idx->codegen());
+    var = Builder->CreateGEP(var, Idx, "arridx");
   }
   Builder->CreateStore(val, var);
   return val;
@@ -342,8 +354,8 @@ Value* VarDefAST::codegen() {
         for (int i = 0, e = p->items.size(); i < e && i < ulen; i++) {
           // todo similar to VarAssign
           auto iv = p->items[i]->codegen();
-          auto ep = Builder->CreateGEP(Builder->getInt32Ty(), alloc,
-                                       Builder->getInt32(i), "arrinit");
+          // local array is i32*
+          auto ep = Builder->CreateGEP(alloc, Builder->getInt32(i), "arrinit");
           Builder->CreateStore(iv, ep);
         }
       }
